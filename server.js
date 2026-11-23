@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createStaticServer } from './scripts/static-server.js';
-import { publicRoot, distRoot, vendorAssets } from './scripts/paths.js';
+import { publicRoot, distRoot, vendorAssets, devAssets } from './scripts/paths.js';
 
 const preview = process.argv.includes('--preview');
 const port = Number(process.env.PORT || 5188);
@@ -17,7 +17,7 @@ try {
   process.exit(1);
 }
 
-const server = createStaticServer({ root: preview ? distRoot : publicRoot, assets: preview ? undefined : vendorAssets });
+const server = createStaticServer({ root: preview ? distRoot : publicRoot, assets: preview ? undefined : new Map([...vendorAssets, ...devAssets]) });
 server.on('error', error => {
   console.error(error.code === 'EADDRINUSE' ? `端口 ${port} 已被占用，请设置 PORT 后重试。` : error.message);
   process.exitCode = 1;

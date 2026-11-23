@@ -11,3 +11,9 @@ export const vendorAssets = new Map([
   ['/vendor/spreadjs/gc.spread.sheets.all.min.js', path.join(spreadRoot, 'dist/gc.spread.sheets.all.min.js')],
   ['/vendor/spreadjs/gc.spread.sheets.excel2013white.css', path.join(spreadRoot, 'styles/gc.spread.sheets.excel2013white.css')]
 ]);
+
+// Local-only files served straight from the project root. They are deliberately
+// not copied into dist/, so npm run build never bundles large media.
+export const devAssets = new Map([
+  ['/intro.mp4', path.join(projectRoot, 'intro.mp4')]
+]);

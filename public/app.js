@@ -15,16 +15,16 @@ let dropColumn = -1;
 let storageAvailable = true;
 
 const palette = {
-  '待开始': ['#fff0ed', '#d66558'], '进行中': ['#fff4cc', '#a37813'], '已完成': ['#e6f5ec', '#319461'], '已暂停': ['#edf0f4', '#8b94a4'],
+  '待开始': ['#f2eef4', '#7a6b80'], '进行中': ['#f8ebf3', '#941966'], '已完成': ['#e6f5ec', '#319461'], '已暂停': ['#edf0f4', '#8b94a4'],
   '重要紧急': ['#ffeded', '#de5e67'], '紧急不重要': ['#fff0e2', '#ca8642'], '重要不紧急': ['#fff6cf', '#b28c1c'], '不紧急不重要': ['#e5f5ee', '#389b76'],
   '已延期': ['#ffeded', '#d65b65'], '正常': ['#eef7f1', '#419867'], '延期完成': ['#fff0e2', '#ca8642']
 };
-const personColors = ['#ec82a8', '#9876d8', '#43b6aa', '#dda052'];
+const personColors = ['#c2688f', '#8f74c9', '#48a89b', '#d59a55'];
 const fieldIcons = { text: 'A', number: '#', date: '▦', select: '◉', multiselect: '☷', person: '●', progress: '%', rating: '★', button: '↗', creator: '♙', computed: 'ƒ' };
 const view = () => state.views.find(v => v.id === state.activeView) || state.views[0];
 const findRecord = id => state.records.find(r => r.id === id);
 const groupTitle = key => key || '未设置';
-const colorFor = value => palette[value] || ['#edf2fd', '#5878ba'];
+const colorFor = value => palette[value] || ['#f6eaf1', '#8a3c6b'];
 
 // Workbook remains the rendering host in all five view types.
 const spread = new S.Workbook($('ss'), {
@@ -34,13 +34,16 @@ const spread = new S.Workbook($('ss'), {
   scrollbarShowMax: false
 });
 const sheet = spread.getActiveSheet();
+// 像素滚动：所有视图共用同一个 Workbook，每次滚动 10 像素。
+spread.options.scrollByPixel = true;
+spread.options.scrollPixel = 10;
 sheet.name('任务');
 sheet.options.rowHeaderVisible = false;
 sheet.options.colHeaderVisible = false;
 sheet.options.gridline = { showVerticalGridline: false, showHorizontalGridline: false };
 sheet.options.isProtected = true;
-sheet.options.selectionBorderColor = '#4c80ed';
-sheet.options.selectionBackColor = 'rgba(73, 122, 226, 0.06)';
+sheet.options.selectionBorderColor = '#941966';
+sheet.options.selectionBackColor = 'rgba(148, 25, 102, 0.06)';
 sheet.options.frozenlineColor = '#e4e9f1';
 sheet.defaults.rowHeight = 38;
 sheet.setDefaultStyle(Object.assign(new S.Style(), { font: '12px "Segoe UI", "Microsoft YaHei", sans-serif', foreColor: '#414b60', backColor: '#ffffff', locked: true, vAlign: S.VerticalAlign.center }));
@@ -95,13 +98,13 @@ class FieldCell extends S.CellTypes.Base {
     else if (this.field.type === 'progress') {
       const progress = Math.max(0, Math.min(100, Number(value) || 0));
       rounded(ctx, x + 10, y + h / 2 - 4, w - 42, 8, 4, '#edf0f5');
-      rounded(ctx, x + 10, y + h / 2 - 4, (w - 42) * progress / 100, 8, 4, '#4c80ed');
+      rounded(ctx, x + 10, y + h / 2 - 4, (w - 42) * progress / 100, 8, 4, '#941966');
       ctx.font = '10px "Segoe UI", sans-serif'; ctx.fillStyle = '#68748b'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(`${progress}%`, x + w - 10, y + h / 2);
     } else if (this.field.type === 'rating') {
       ctx.font = '14px "Segoe UI", sans-serif'; ctx.fillStyle = '#dba943'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('★'.repeat(Number(value) || 0) + '☆'.repeat(5 - (Number(value) || 0)), x + 10, y + h / 2);
     } else if (this.field.type === 'button') {
-      rounded(ctx, x + 10, y + h / 2 - 11, Math.min(w - 20, 88), 22, 5, '#eef3ff', '#dce6ff');
-      ctx.font = '11px "Microsoft YaHei", sans-serif'; ctx.fillStyle = '#315eb8'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(value), x + 54, y + h / 2);
+      rounded(ctx, x + 10, y + h / 2 - 11, Math.min(w - 20, 88), 22, 5, '#f8ebf3', '#e8d9e1');
+      ctx.font = '11px "Microsoft YaHei", sans-serif'; ctx.fillStyle = '#7d2a5e'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(value), x + 54, y + h / 2);
     }
     else {
       ctx.font = this.field.id === 'title' ? '12px "Microsoft YaHei", sans-serif' : '11px "Microsoft YaHei", sans-serif';
@@ -194,13 +197,13 @@ class CardCell extends S.CellTypes.Base {
       ctx.font = '12px "Microsoft YaHei", sans-serif'; ctx.fillStyle = '#9aa6b9'; ctx.textBaseline = 'middle'; ctx.fillText('+  添加任务', x + 25, y + 27);
     } else if (value.kind === 'calendarDay') {
       ctx.fillStyle=value.outside?'#f7f8fb':'#fff';ctx.fillRect(x,y,w,h);ctx.fillStyle='#f8f9fc';ctx.fillRect(x,y,w,28);ctx.font='11px "Microsoft YaHei", sans-serif';ctx.fillStyle=value.outside?'#b3bbc9':'#778197';ctx.textBaseline='middle';ctx.fillText(value.label,x+10,y+14);ctx.fillText('+',x+w-16,y+14);
-      if(value.today){ctx.fillStyle='#245bdb';ctx.beginPath();ctx.arc(x+w-18,y+17,4,0,Math.PI*2);ctx.fill();}
+      if(value.today){ctx.fillStyle='#941966';ctx.beginPath();ctx.arc(x+w-18,y+17,4,0,Math.PI*2);ctx.fill();}
       value.records.slice(0,2).forEach((record,i)=>{const cy=y+33+i*25;rounded(ctx,x+5,cy,w-10,21,4,colorFor(record.status)[0]);ctx.fillStyle=colorFor(record.status)[1];ctx.fillRect(x+5,cy,3,21);ctx.font='10px "Microsoft YaHei", sans-serif';ctx.fillStyle='#465168';ctx.textAlign='left';clippedText(ctx,record.title,x+12,cy+11,w-22);});
-      if(value.records.length>2){ctx.font='10px "Microsoft YaHei", sans-serif';ctx.fillStyle='#6481b5';ctx.fillText(`查看全部 ${value.records.length} 项`,x+8,y+h-10);}
+      if(value.records.length>2){ctx.font='10px "Microsoft YaHei", sans-serif';ctx.fillStyle='#8a5172';ctx.fillText(`查看全部 ${value.records.length} 项`,x+8,y+h-10);}
     } else if (value.kind === 'gantt') {
       const start=value.record[view().startField]||value.record[view().endField],end=value.record[view().endField]||start;
       ctx.fillStyle=value.weekend?'#f7f9fc':'#fff';ctx.fillRect(x,y,w,h);
-      if(start&&end&&value.day>=start&&value.day<=end){ctx.fillStyle='#759ff0';ctx.fillRect(x,y+h/2-9,w,18);if(value.day===start||value.day===end){ctx.fillStyle='#3569cf';ctx.fillRect(value.day===start?x+2:x+w-5,y+h/2-5,3,10);}}
+      if(start&&end&&value.day>=start&&value.day<=end){ctx.fillStyle='#dfb2c9';ctx.fillRect(x,y+h/2-9,w,18);if(value.day===start||value.day===end){ctx.fillStyle='#8f2f65';ctx.fillRect(value.day===start?x+2:x+w-5,y+h/2-5,3,10);}}
       else {ctx.fillStyle=value.weekend?'#fafbfd':'#fff';ctx.fillRect(x,y,w,h);}
       if(value.today){ctx.fillStyle='#dc5965';ctx.fillRect(x,y,1,h);}
     } else if (value.kind === 'gallery') {
@@ -302,7 +305,7 @@ class TaskDataProvider {
     style.backColor = '#fff'; style.foreColor = '#465168';
     style.font = '11px "Microsoft YaHei", sans-serif';
     if (board) {
-      style.backColor = col === dropColumn ? '#e8effd' : '#f5f7fb';
+      style.backColor = col === dropColumn ? '#f7e9f1' : '#f7f4f6';
       style.cellType = this.cardCell;
       style.borderRight = new S.LineBorder('#fff', S.LineStyle.medium);
     } else {
@@ -685,10 +688,42 @@ $('delete-record').onclick = () => {
 function undo() { sheet.endEdit(); if (pendingBefore) flushEdits(); history.undo();state=workspace.tables.find(t=>t.id===workspace.activeTableId);render(); save(); }
 function redo() { sheet.endEdit(); if (pendingBefore) flushEdits(); history.redo();state=workspace.tables.find(t=>t.id===workspace.activeTableId);render(); save(); }
 $('undo-button').onclick = undo; $('redo-button').onclick = redo;
-$('reset-button').onclick = () => {
-  if (!confirm('恢复示例任务并清除当前浏览器内的 Demo 修改？')) return;
-  workspace=createWorkspace();state=workspace.tables[0];history=new History(workspace);pendingBefore=null;cancelAnimationFrame(editFrame);editFrame=0;render();save();
+const collapseButton = $('collapse-header');
+const collapsibleBlocks = document.querySelectorAll('.site-header,.page-header,.view-tabs,.view-caption');
+collapseButton.onclick = () => {
+  const collapsed = document.body.classList.toggle('header-collapsed');
+  // Animating height keeps the blocks in the DOM; make them unreachable for
+  // keyboard and screen readers while they are collapsed.
+  collapsibleBlocks.forEach(block => { block.inert = collapsed; });
+  collapseButton.setAttribute('aria-expanded', String(!collapsed));
+  collapseButton.setAttribute('aria-label', collapsed ? '展开顶部区域' : '收起顶部区域');
+  collapseButton.title = collapsed ? '展开顶部区域' : '收起顶部区域';
 };
+const toast = $('toast');
+let toastTimer = 0;
+function showToast(message) {
+  $('toast-text').textContent = message;
+  toast.classList.add('is-visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 2600);
+}
+$('reset-button').onclick = () => $('reset-dialog').showModal();
+$('confirm-reset').onclick = () => {
+  $('reset-dialog').close();
+  workspace=createWorkspace();state=workspace.tables[0];history=new History(workspace);pendingBefore=null;cancelAnimationFrame(editFrame);editFrame=0;render();save();
+  showToast(`已恢复示例数据，共 ${state.records.length} 条任务`);
+};
+// 线上发布时把这里换成视频链接（CDN / 对象存储）；本地开发用项目根目录的 intro.mp4，
+// 该文件只由开发服务器提供，不会打进 dist/。
+const INTRO_VIDEO_URL = '../intro.mp4';
+const introVideo = $('intro-video');
+$('intro-button').onclick = () => {
+  $('intro-fallback').hidden = true;
+  if (!introVideo.getAttribute('src')) introVideo.src = INTRO_VIDEO_URL;
+  $('intro-dialog').showModal();
+};
+$('intro-dialog').addEventListener('close', () => { introVideo.pause(); if (introVideo.readyState > 0) introVideo.currentTime = 0; });
+introVideo.addEventListener('error', () => { $('intro-fallback').hidden = false; });
 $('table-select').onchange=()=>{if(!sheet.endEdit()){$('table-select').value=state.id;return;}if(pendingBefore)flushEdits();workspace.activeTableId=$('table-select').value;state=workspace.tables.find(t=>t.id===workspace.activeTableId);render();save();};
 $('table-select').oncontextmenu=event=>{event.preventDefault();openManager('table');};$('manage-table').onclick=()=>openManager('table');$('manage-view').onclick=()=>openManager('view');
 let manageKind='view';
@@ -700,7 +735,7 @@ $('add-table').onclick=()=>{const name=prompt('新数据表名称','新数据表
 $('add-view').onclick=()=>{$('view-form').reset();setOptions($('view-form').elements.type,Object.entries(VIEW_TYPES).map(([id,name])=>({id,name})));$('view-dialog').showModal();};
 $('view-form').onsubmit=event=>{event.preventDefault();const form=event.currentTarget;const type=form.elements.type.value,name=form.elements.name.value.trim();if(!name)return;commit('新建视图',()=>{const item=makeView(state,type,name);state.views.push(item);state.activeView=item.id;});$('view-dialog').close();};
 document.querySelectorAll('[data-close]').forEach(button => button.onclick = () => button.closest('dialog').close());
-document.querySelectorAll('.tool-dialog').forEach(dialog => dialog.addEventListener('click', event => {
+document.querySelectorAll('.tool-dialog, .center-dialog').forEach(dialog => dialog.addEventListener('click', event => {
   const rect = dialog.getBoundingClientRect();
   if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
 }));
@@ -752,10 +787,14 @@ document.addEventListener('mouseup', event => {
   } else { provider.styleCache.clear(); dataRange.repaint(); }
 });
 window.addEventListener('blur', () => { drag = null; ghost?.remove(); ghost = null; dropColumn = -1; provider.styleCache.clear(); dataRange.repaint(); });
-let resizeFrame=0,lastSize='';
+let resizeFrame=0,resizeTimer=0,lastSize='';
 new ResizeObserver(entries=>{
  const rect=entries[0].contentRect,key=Math.round(rect.width)+'x'+Math.round(rect.height);if(key===lastSize)return;lastSize=key;
- cancelAnimationFrame(resizeFrame);resizeFrame=requestAnimationFrame(()=>{if(!sheet.endEdit())return;if(pendingBefore)flushEdits();spread.refresh();render();});
+ // The header collapse transition resizes the shell every frame; keep the canvas
+ // in sync immediately and defer the heavier layout rebuild until the size settles.
+ cancelAnimationFrame(resizeFrame);resizeFrame=requestAnimationFrame(()=>spread.refresh());
+ clearTimeout(resizeTimer);
+ resizeTimer=setTimeout(()=>{if(!sheet.endEdit())return;if(pendingBefore)flushEdits();render();},180);
 }).observe($('spread-shell'));
 sheet.bind(S.Events.EditEnded, () => { if (pendingBefore && !editFrame) editFrame = requestAnimationFrame(flushEdits); });
 
