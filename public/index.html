@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>任务管理 · 多维表格</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./vendor/spreadjs/gc.spread.sheets.excel2013white.css">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 9v12M3 15h18"/></symbol>
+    <symbol id="i-board" viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="15" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h2M14 14h2M8 18h2"/></symbol>
+    <symbol id="i-gantt" viewBox="0 0 24 24"><path d="M4 5h5M4 10h9M4 15h13M4 20h7M11 4h7v3h-7zM15 9h6v3h-6zM10 14h7v3h-7z"/></symbol>
+    <symbol id="i-gallery" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m4 16 5-5 4 4 3-3 4 4M8 8h.01"/></symbol>
+    <symbol id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><path d="M3 20v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6M21 20v-3a6 6 0 0 0-4-5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 4h18l-7 8v7l-4 2v-9Z"/></symbol>
+    <symbol id="i-group" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M8 7h8M8 17h8"/></symbol>
+    <symbol id="i-sort" viewBox="0 0 24 24"><path d="M7 4v16m-4-4 4 4 4-4M14 5h7M14 10h5M14 15h3"/></symbol>
+    <symbol id="i-fields" viewBox="0 0 24 24"><path d="M8 3v18M16 3v18M3 8h18M3 16h18"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="m8 4-5 5 5 5M3 9h11a7 7 0 0 1 0 14" transform="translate(0 -2)"/></symbol>
+    <symbol id="i-redo" viewBox="0 0 24 24"><path d="m16 4 5 5-5 5M21 9H10a7 7 0 0 0 0 14" transform="translate(0 -2)"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m8 5 7 7-7 7"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+  </defs></svg>
+  <aside class="sidebar">
+    <div class="workspace"><span class="workspace-logo"><i></i><i></i><i></i></span><span>协作空间<small>TEAM WORKSPACE</small></span></div>
+    <div class="sidebar-label">工作台</div>
+    <div class="dataset-item"><svg><use href="#i-table"/></svg><select id="table-select" aria-label="数据表"></select><button id="manage-table" title="管理数据表" aria-label="管理数据表">⋯</button><span class="dataset-count" id="sidebar-count">12</span><button id="add-table" title="新建数据表" aria-label="新建数据表">+</button></div>
+    <nav id="side-views" aria-label="视图导航"></nav>
+    <button id="add-view" class="side-view">＋ 添加视图</button>
+    <div class="sidebar-bottom"><span class="storage-dot"></span><span id="storage-status">保存在此浏览器</span><button id="reset-button" title="恢复示例数据" aria-label="恢复示例数据">↺</button></div>
+  </aside>
+  <main>
+    <header class="page-header">
+      <div class="breadcrumb">协作空间 <span>/</span> 项目协作</div>
+      <div class="title-row"><span class="title-icon"><svg><use href="#i-check"/></svg></span><h1>任务管理</h1><span class="title-tag">团队项目</span><div class="header-spacer"></div><span class="avatar-stack"><b>林</b><b>周</b><b>黄</b><b>刘</b></span></div>
+    </header>
+    <div class="view-tabs" id="view-tabs" role="tablist" aria-label="任务视图"></div>
+    <div class="toolbar">
+      <button id="add-button" class="primary"><svg><use href="#i-plus"/></svg>添加记录</button>
+      <span class="toolbar-divider"></span>
+      <button id="fields-button"><svg><use href="#i-fields"/></svg>字段配置</button>
+      <button id="filter-button"><svg><use href="#i-filter"/></svg>筛选<span class="button-count" id="filter-count" hidden></span></button>
+      <button id="group-button"><svg><use href="#i-group"/></svg><span id="group-label">分组</span></button>
+      <button id="sort-button"><svg><use href="#i-sort"/></svg>排序</button>
+      <button id="manage-view" title="视图设置">视图设置</button>
+      <span class="header-spacer"></span>
+      <label class="search-box"><svg><use href="#i-search"/></svg><input id="search-input" type="search" placeholder="搜索记录" aria-label="搜索记录"></label>
+      <button id="undo-button" class="icon-button" title="撤销 Ctrl+Z" aria-label="撤销"><svg><use href="#i-undo"/></svg></button>
+      <button id="redo-button" class="icon-button" title="重做 Ctrl+Shift+Z" aria-label="重做"><svg><use href="#i-redo"/></svg></button>
+    </div>
+    <div class="view-caption"><span id="view-description">按重要紧急程度分组，安排任务优先级</span><span id="period-control"></span><span id="view-hint">双击编辑单元格 · 点击序号打开详情</span></div>
+    <div id="spread-shell"><div id="ss" aria-label="任务数据区域"></div></div>
+    <footer><span id="record-count"></span><span class="footer-dot">·</span><span id="group-count"></span><span class="header-spacer"></span><span id="footer-hint">所有视图共享同一份任务数据</span></footer>
+  </main>
+
+  <dialog id="filter-dialog" class="tool-dialog"><form id="filter-form"><h2>筛选记录</h2><div id="filter-conditions"></div><button type="button" id="add-condition">＋ 添加条件</button><div class="dialog-actions"><button type="button" id="clear-filter">清除筛选</button><button class="primary" type="submit">应用</button></div></form></dialog>
+  <dialog id="group-dialog" class="tool-dialog"><form id="group-form"><h2>分组设置</h2><label>第一层<select name="field" id="group-field"></select></label><label>第二层<select name="field2" id="group-field-2"></select></label><div class="dialog-actions"><button type="button" data-close>取消</button><button type="submit" class="primary">应用</button></div></form></dialog>
+  <dialog id="sort-dialog" class="tool-dialog"><form id="sort-form"><h2>排序设置</h2><label>第一排序字段<select name="field" id="sort-field"></select></label><label>顺序<select name="direction"><option value="asc">升序</option><option value="desc">降序</option></select></label><label>第二排序字段<select name="field2" id="sort-field-2"></select></label><label>顺序<select name="direction2"><option value="asc">升序</option><option value="desc">降序</option></select></label><div class="dialog-actions"><button type="button" data-close>取消</button><button type="submit" class="primary">应用</button></div></form></dialog>
+  <dialog id="view-dialog" class="center-dialog"><form id="view-form"><h2>新建视图</h2><label>视图名称<input name="name" required maxlength="40"></label><label>视图类型<select name="type"></select></label><div class="dialog-actions"><button type="button" data-close>取消</button><button type="submit" class="primary">创建</button></div></form></dialog>
+  <dialog id="manage-dialog" class="tool-dialog"><form><h2 id="manage-title">管理</h2><div class="dialog-actions"><button type="button" id="rename-item">重命名</button><button type="button" id="duplicate-item">复制</button><button type="button" id="delete-item" class="danger">删除</button></div></form></dialog>
+
+  <dialog id="fields-dialog" class="drawer fields-drawer"><div class="drawer-head"><div><h2>字段配置</h2><p>调整当前视图的字段与显示顺序</p></div><button class="icon-button" data-close aria-label="关闭字段配置"><svg><use href="#i-close"/></svg></button></div><div id="field-list"></div><div class="drawer-foot"><button id="new-field-button" class="primary"><svg><use href="#i-plus"/></svg>添加字段</button></div></dialog>
+
+  <dialog id="new-field-dialog" class="center-dialog"><form id="new-field-form"><h2>添加字段</h2><label>字段名称<input name="name" required maxlength="30" placeholder="例如：预计工时"></label><label>字段类型<select name="type"></select></label><label id="new-options-label" hidden>选项（用逗号分隔）<input name="options" placeholder="例如：高,中,低"></label><label>默认值<input name="defaultValue" placeholder="可不填写"></label><div class="two-columns"><label>列宽<input name="width" type="number" min="60" max="600" step="10"></label><label>数字格式<select name="format"><option value="plain">常规</option><option value="integer">整数</option><option value="decimal">两位小数</option><option value="percent">百分比（0.5 → 50%）</option><option value="currency">人民币</option></select></label></div><div id="button-options" hidden><label>按钮文本<input name="buttonLabel" maxlength="20" value="查看详情"></label><label>按钮动作<select name="action"><option value="detail">打开详情</option><option value="complete">标记任务已完成</option></select></label></div><p id="field-conversion-hint">更改类型会校验全部现有值；转换失败时保留原数据。人员与创建人使用本地示例成员。</p><p class="form-error" id="new-field-error" role="alert"></p><div class="dialog-actions"><button type="button" data-close>取消</button><button type="submit" class="primary">创建字段</button></div></form></dialog>
+
+  <dialog id="record-dialog" class="drawer record-drawer"><form id="record-form"><div class="drawer-head"><div><span class="eyebrow">任务记录</span><h2 id="record-dialog-title">任务详情</h2></div><button class="icon-button" type="button" data-close aria-label="关闭任务详情"><svg><use href="#i-close"/></svg></button></div><div id="record-fields"></div><p class="form-error" id="record-error" role="alert"></p><div class="drawer-foot"><button type="button" id="delete-record" class="danger">删除记录</button><span class="header-spacer"></span><button type="button" data-close>取消</button><button type="submit" class="primary">保存</button></div></form></dialog>
+
+  <dialog id="records-list-dialog" class="center-dialog"><h2 id="records-list-title"></h2><div id="records-list"></div><div class="dialog-actions"><button data-close>关闭</button><button id="list-add-record" class="primary">添加记录</button></div></dialog>
+  <script src="./vendor/spreadjs/gc.spread.sheets.all.min.js"></script>
+  <!-- Set GC.Spread.Sheets.LicenseKey here before app.js when using a licensed deployment. -->
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
