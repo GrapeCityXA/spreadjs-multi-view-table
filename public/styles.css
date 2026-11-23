@@ -108,3 +108,6 @@ dialog[open]::backdrop{opacity:1}
 .field-row.is-hidden label{opacity:.55}
 #field-list{position:relative}
 .field-drop-line{position:absolute;left:20px;right:20px;height:2px;background:#941966;border-radius:2px;pointer-events:none;z-index:2}
+.period-label{font-size:10px;color:#a2aab8;margin-left:4px}
+.calendar-control{display:inline-flex;align-items:center;gap:2px;margin-left:6px;font-size:11px}
+.calendar-control select{height:27px;border:1px solid var(--line);border-radius:5px;background:#fff;color:#59647a;font-size:11px;padding:2px 5px}

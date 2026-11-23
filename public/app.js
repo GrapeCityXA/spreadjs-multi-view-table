@@ -509,14 +509,14 @@ function render() {
   $('view-description').textContent = current.type === 'grid' ? (groupName ? `按${groupName}分组` : '集中查看和编辑全部任务') : `${VIEW_TYPES[current.type]}视图${groupName?` · ${groupName}`:''}`;
   $('view-hint').textContent = current.type === 'grid' ? '双击编辑单元格 · 点击序号打开详情' : current.type === 'board'?'点击卡片查看详情 · 拖动卡片调整分组':current.type==='calendar'?'拖动改期 · 日期右上角＋新增':current.type==='gantt'?'拖动任务条改期 · 两端调整起止日期':'点击记录打开详情';
   const period=$('period-control');period.replaceChildren();
+  const calendarControl=$('calendar-date-control');
   if(current.type==='calendar'){
-    const prev=document.createElement('button');prev.textContent='‹';prev.title='上个月';prev.onclick=()=>{const d=new Date(current.month+'-01T00:00:00');d.setMonth(d.getMonth()-1);current.month=dateKey(d).slice(0,7);render();save();};
-    const label=document.createElement('strong');label.textContent=current.month;
-    const next=document.createElement('button');next.textContent='›';next.title='下个月';next.onclick=()=>{const d=new Date(current.month+'-01T00:00:00');d.setMonth(d.getMonth()+1);current.month=dateKey(d).slice(0,7);render();save();};
-    const date=document.createElement('select');setOptions(date,state.fields.filter(f=>f.type==='date').map(f=>({id:f.id,name:f.name})));date.value=current.dateField;date.setAttribute('aria-label','日历日期字段');date.onchange=()=>{current.dateField=date.value;render();save();};
-    const today=document.createElement('button');today.textContent='今天';today.onclick=()=>{current.month=dateKey().slice(0,7);render();save();};
-    const unscheduled=provider.records.filter(r=>!r[current.dateField]);const list=document.createElement('button');list.textContent=`未排期 ${unscheduled.length}`;list.onclick=()=>showRecordList('未排期记录',unscheduled);period.append(prev,label,next,today,date,list);
-  }
+    const select=$('calendar-date-select');
+    setOptions(select,state.fields.filter(f=>f.type==='date').map(f=>({id:f.id,name:f.name})));
+    select.value=current.dateField;
+    select.onchange=()=>{current.dateField=select.value;render();save();};
+    calendarControl.hidden=false;
+  } else calendarControl.hidden=true;
   if(current.type==='gantt'){
     const prev=document.createElement('button');prev.textContent='‹';prev.title='向前一周';prev.onclick=()=>{current.timelineStart=addDays(current.timelineStart,-7);render();save();};
     const label=document.createElement('strong');label.textContent=`${current.timelineStart} 起`;

@@ -139,9 +139,10 @@ export const dayDiff = (a,b) => Math.round((Date.parse(b+'T00:00:00Z')-Date.pars
 export const editable = field => !READ_ONLY.includes(field.type);
 export function makeView(table,type,name) {
   const dates=table.fields.filter(f=>f.type==='date').map(f=>f.id);
+  const preferredDate=table.fields.find(f=>f.type==='date'&&['publish','due','next','end'].includes(f.id));
   const startField=table.fields.find(f=>f.id==='start'&&f.type==='date')?.id||dates[0]||'';
   const endField=table.fields.find(f=>f.id==='due'&&f.type==='date')?.id||dates[1]||dates[0]||'';
-  return {id:uid('view'),type,name:name||VIEW_TYPES[type],columns:table.fields.map(f=>f.id),fieldOrder:table.fields.map(f=>f.id),query:'',filters:{logic:'and',conditions:[]},groupFields:type==='board'?[table.fields.find(f=>['select','person'].includes(f.type))?.id||'title']:[],sorts:[],collapsed:[],month:dateKey().slice(0,7),dateField:dates[0]||'',startField,endField,timelineStart:addDays(dateKey(),-7),days:42};
+  return {id:uid('view'),type,name:name||VIEW_TYPES[type],columns:table.fields.map(f=>f.id),fieldOrder:table.fields.map(f=>f.id),query:'',filters:{logic:'and',conditions:[]},groupFields:type==='board'?[table.fields.find(f=>['select','person'].includes(f.type))?.id||'title']:[],sorts:[],collapsed:[],month:dateKey().slice(0,7),dateField:preferredDate?.id||dates[0]||'',startField,endField,timelineStart:addDays(dateKey(),-7),days:42};
 }
 // fieldOrder keeps every field in a stable position, including hidden ones, so
 // toggling visibility never reshuffles the list. columns stays the visible subset.
