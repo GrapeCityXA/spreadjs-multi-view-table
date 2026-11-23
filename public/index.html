@@ -30,6 +30,7 @@
     <symbol id="i-collapse" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6M6 9l6-6 6 6"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
     <symbol id="i-play" viewBox="0 0 24 24"><path d="M9 6.5v11l9-5.5-9-5.5Z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.4h.01"/></symbol>
   </defs></svg>
   <header class="site-header">
     <a class="site-logo" href="https://www.grapecity.com.cn/developer/spreadjs" target="_blank" rel="noopener noreferrer" aria-label="SpreadJS 产品首页">
@@ -50,10 +51,8 @@
   <div class="app-body">
   <aside class="sidebar">
     <div class="workspace"><span class="workspace-logo"><i></i><i></i><i></i></span><span>多维表格<small>MULTI-VIEW TABLE</small></span></div>
-    <div class="sidebar-label">工作台</div>
-    <div class="dataset-item"><svg><use href="#i-table"/></svg><select id="table-select" aria-label="数据表"></select><button id="manage-table" title="管理数据表" aria-label="管理数据表"><svg><use href="#i-more"/></svg></button><span class="dataset-count" id="sidebar-count">12</span><button id="add-table" title="新建数据表" aria-label="新建数据表"><svg><use href="#i-plus"/></svg></button></div>
-    <nav id="side-views" aria-label="视图导航"></nav>
-    <button id="add-view" class="side-view">＋ 添加视图</button>
+    <div class="sidebar-section"><span class="sidebar-label">数据表</span><button id="manage-table" title="管理数据表" aria-label="管理数据表"><svg><use href="#i-more"/></svg></button><button id="add-table" title="新建数据表" aria-label="新建数据表"><svg><use href="#i-plus"/></svg></button></div>
+    <nav id="table-list" aria-label="数据表列表"></nav>
     <div class="sidebar-bottom"><span class="storage-dot"></span><span id="storage-status">保存在此浏览器</span><button id="reset-button" title="恢复示例数据" aria-label="恢复示例数据">↺</button></div>
   </aside>
   <main>
@@ -61,7 +60,11 @@
       <div class="breadcrumb">多维表格 <span>/</span> 项目协作</div>
       <div class="title-row"><span class="title-icon"><svg><use href="#i-check"/></svg></span><h1>任务管理</h1><span class="title-tag">团队项目</span><div class="header-spacer"></div><button id="intro-button" class="intro-button" type="button"><svg><use href="#i-play"/></svg>观看介绍</button><span class="avatar-stack"><b>林</b><b>周</b><b>黄</b><b>刘</b></span></div>
     </header>
-    <div class="view-tabs" id="view-tabs" role="tablist" aria-label="任务视图"></div>
+    <div class="view-tabs-row">
+      <div class="view-tabs" id="view-tabs" role="tablist" aria-label="任务视图"></div>
+      <button id="add-view" class="add-view-tab" type="button"><svg><use href="#i-plus"/></svg><span>添加视图</span></button>
+      <button id="collapse-header" class="icon-button view-tabs-toggle" type="button" title="收起顶部区域" aria-label="收起顶部区域" aria-expanded="true"><svg><use href="#i-collapse"/></svg></button>
+    </div>
     <div class="toolbar">
       <button id="add-button" class="primary"><svg><use href="#i-plus"/></svg>添加记录</button>
       <span class="toolbar-divider"></span>
@@ -74,8 +77,6 @@
       <label class="search-box"><svg><use href="#i-search"/></svg><input id="search-input" type="search" placeholder="搜索记录" aria-label="搜索记录"></label>
       <button id="undo-button" class="icon-button" title="撤销 Ctrl+Z" aria-label="撤销"><svg><use href="#i-undo"/></svg></button>
       <button id="redo-button" class="icon-button" title="重做 Ctrl+Shift+Z" aria-label="重做"><svg><use href="#i-redo"/></svg></button>
-      <span class="toolbar-divider"></span>
-      <button id="collapse-header" class="icon-button" type="button" title="收起顶部区域" aria-label="收起顶部区域" aria-expanded="true"><svg><use href="#i-collapse"/></svg></button>
     </div>
     <div class="view-caption"><span id="view-description">按重要紧急程度分组，安排任务优先级</span><span id="period-control"></span><span id="view-hint">双击编辑单元格 · 点击序号打开详情</span></div>
     <div id="spread-shell"><div id="ss" aria-label="任务数据区域"></div></div>
@@ -89,6 +90,8 @@
   <dialog id="view-dialog" class="center-dialog"><form id="view-form"><h2>新建视图</h2><label>视图名称<input name="name" required maxlength="40"></label><label>视图类型<select name="type"></select></label><div class="dialog-actions"><button type="button" data-close>取消</button><button type="submit" class="primary">创建</button></div></form></dialog>
   <dialog id="manage-dialog" class="center-dialog"><form><h2 id="manage-title">管理</h2><div class="dialog-actions"><button type="button" id="rename-item">重命名</button><button type="button" id="duplicate-item">复制</button><button type="button" id="delete-item" class="danger">删除</button></div></form></dialog>
   <dialog id="reset-dialog" class="center-dialog"><h2>恢复示例数据</h2><p>将替换当前工作区的全部数据表、记录、字段和视图，并清空撤销记录，恢复后无法撤销。</p><div class="dialog-actions"><button type="button" data-close>取消</button><button type="button" id="confirm-reset" class="primary">恢复示例</button></div></dialog>
+  <dialog id="confirm-dialog" class="center-dialog"><h2 id="confirm-title">确认操作</h2><p id="confirm-message"></p><div class="dialog-actions"><button type="button" data-close>取消</button><button type="button" id="confirm-ok" class="primary">确定</button></div></dialog>
+  <dialog id="prompt-dialog" class="center-dialog"><form id="prompt-form"><h2 id="prompt-title">重命名</h2><label><span id="prompt-label">名称</span><input id="prompt-input" maxlength="40" required></label><div class="dialog-actions"><button type="button" data-close>取消</button><button type="submit" class="primary">确定</button></div></form></dialog>
   <dialog id="intro-dialog" class="center-dialog intro-dialog"><div class="intro-head"><div><span class="eyebrow">DEMO VIDEO</span><h2>多维表格介绍</h2></div><button class="icon-button" type="button" data-close aria-label="关闭介绍视频"><svg><use href="#i-close"/></svg></button></div><video id="intro-video" controls playsinline preload="metadata"></video><p id="intro-fallback" class="intro-fallback" hidden>视频暂时无法加载，请稍后再试或联系演示人员。</p></dialog>
 
   <dialog id="fields-dialog" class="drawer fields-drawer"><div class="drawer-head"><div><h2>字段配置</h2><p>调整当前视图的字段与显示顺序</p></div><button class="icon-button" data-close aria-label="关闭字段配置"><svg><use href="#i-close"/></svg></button></div><div id="field-list"></div><div class="drawer-foot"><button id="new-field-button" class="primary"><svg><use href="#i-plus"/></svg>添加字段</button></div></dialog>
@@ -98,7 +101,7 @@
   <dialog id="record-dialog" class="drawer record-drawer"><form id="record-form"><div class="drawer-head"><div><span class="eyebrow">任务记录</span><h2 id="record-dialog-title">任务详情</h2></div><button class="icon-button" type="button" data-close aria-label="关闭任务详情"><svg><use href="#i-close"/></svg></button></div><div id="record-fields"></div><p class="form-error" id="record-error" role="alert"></p><div class="drawer-foot"><button type="button" id="delete-record" class="danger">删除记录</button><span class="header-spacer"></span><button type="button" data-close>取消</button><button type="submit" class="primary">保存</button></div></form></dialog>
 
   <dialog id="records-list-dialog" class="center-dialog"><h2 id="records-list-title"></h2><div id="records-list"></div><div class="dialog-actions"><button data-close>关闭</button><button id="list-add-record" class="primary">添加记录</button></div></dialog>
-  <div id="toast" class="toast" role="status" aria-live="polite"><svg><use href="#i-check"/></svg><span id="toast-text"></span></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"><svg><use id="toast-icon" href="#i-check"/></svg><span id="toast-text"></span></div>
   <script src="./vendor/spreadjs/gc.spread.sheets.all.min.js"></script>
   <!-- Set GC.Spread.Sheets.LicenseKey here before app.js when using a licensed deployment. -->
   <script type="module" src="./app.js"></script>

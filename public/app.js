@@ -1,5 +1,6 @@
 import { STORAGE_KEY, createWorkspace, loadWorkspace, fieldValue, valueOf, normalizeValue, updateRecord, projectRecords, gridRows, leafGroups, groupFields, sortRules, makeView, saveField, deleteField, newTable, defaultsFor, TYPES, VIEW_TYPES, editable, History, dateKey, relativeDate, addDays, uid } from './model.js';
 
+GC.Spread.Sheets.LicenseKey = "GrapeCity-Internal-Use-Only,E562651991126827#B1swIZzxWYmpjIyNHZisnOiwmbBJye0ICRiwiI34TUNZTd596K6tiWGJWeuNVQ4oEOlFWN0l5R9UHTQFERoVUM7kGanZWZzlzd0pkUtpUW6EjYxp5QsxUWh54TPl6UCl4NrQ5Sud5Z9dnQE9GWkRDeTJ4bwMkZCd5dkBlNpZFdv2kb7EVc9NHcwxEZIJVaS94UoNGc0pEZQJ7MMd5UWdWYOZGRnxkZWlTUm56bBBzTZRjd0JlSOdVR9dnWqlGN8tUT8QUUFhEU4tUZQlXSxlmYxlmczo6K03yVxNnMPZFMyUmeCdVezBFUvgGOOBjbFd6RyFHVHVncFJTQ4I5R6VXVmNEZmRzT8k4NZFGasdHUrImeY9GV6VWVSxmY7ZHeGh5ak56dkJ7KhZXYUFXVUJjZkdWe8IlcpVmS0VzLqZnSLVnbTlkZQZjM9MTYZdTSuFUaqBHTyJjQyolNNdTQpFjZC9kdGJGaBVncwcGcNx6NldkTkxkI0IyUiwiI7UTM7UzQ9YjI0ICSiwSN6kjNzgTMxgTM0IicfJye=#Qf35VfiEzQRdlI0IyQiwiI9EjL6BSKONEKTpEIkFWZyB7UiojIOJyebpjIkJHUiwiI6EDOzIDMggTMxETNyAjMiojI4J7QiwiIwpmLzVXajNXZt9iKs2WauMXdpN6cl5mLqwCcq9ybj9Se4l6YlBXYydmLqwicr9ybj9yc5l6YzVWbuoCLt36YuMXdpN6cl5mLqwibj9SbvNmL9RXajVGchJ7ZuoCLt36YuYXZklHdpNWZwFmcn9iKsA7b49yc5l6YzVWbuoCLt36YukHdpNWZwFmcn9iKsMXduMXdpN6cl5mLqwCcq9ybj9yc5l6YzVWbuoCLytmLvNmL9RXajVGchJ7ZuoiI0IyctRkIsIycs36bUJXZw3GblZXZEJiOiEmTDJCLlVnc4pjIsZXRiwiI7IDO6ITMxkTOxUjNyYTNiojIklkIs4XXiQnchh6QhRXYEJCLi86bpRXYy3mYhxGbvNkIsISSBJCLiQXZlh6U4RnbhdkIsICdlVGaTRncvBXZSJCLiUGbiFGV43mdpBlIbpjIMxNZ"
 const S = GC.Spread.Sheets;
 const $ = id => document.getElementById(id);
 let workspace = loadWorkspace(localStorage);
@@ -12,12 +13,17 @@ let editFrame = 0;
 let drag = null;
 let ghost = null;
 let dropColumn = -1;
+let dragFieldId = null;
+let dragDropIndex = -1;
 let storageAvailable = true;
 
 const palette = {
   '待开始': ['#f2eef4', '#7a6b80'], '进行中': ['#f8ebf3', '#941966'], '已完成': ['#e6f5ec', '#319461'], '已暂停': ['#edf0f4', '#8b94a4'],
   '重要紧急': ['#ffeded', '#de5e67'], '紧急不重要': ['#fff0e2', '#ca8642'], '重要不紧急': ['#fff6cf', '#b28c1c'], '不紧急不重要': ['#e5f5ee', '#389b76'],
-  '已延期': ['#ffeded', '#d65b65'], '正常': ['#eef7f1', '#419867'], '延期完成': ['#fff0e2', '#ca8642']
+  '已延期': ['#ffeded', '#d65b65'], '正常': ['#eef7f1', '#419867'], '延期完成': ['#fff0e2', '#ca8642'],
+  '初步沟通': ['#f2eef4', '#7a6b80'], '需求确认': ['#f8ebf3', '#941966'], '方案报价': ['#fff0e2', '#ca8642'], '合同签订': ['#e6f5ec', '#319461'],
+  '待撰写': ['#f2eef4', '#7a6b80'], '待审核': ['#fff6cf', '#b28c1c'], '已发布': ['#e6f5ec', '#319461'],
+  '公众号': ['#e6f5ec', '#319461'], '视频号': ['#ffeded', '#d65b65'], '小红书': ['#f8ebf3', '#941966'], '官网': ['#f2eef4', '#7a6b80']
 };
 const personColors = ['#c2688f', '#8f74c9', '#48a89b', '#d59a55'];
 const fieldIcons = { text: 'A', number: '#', date: '▦', select: '◉', multiselect: '☷', person: '●', progress: '%', rating: '★', button: '↗', creator: '♙', computed: 'ƒ' };
@@ -361,7 +367,7 @@ class TaskDataProvider {
     if(view().type==='calendar'){
       if(row<1)return true;
       const day=this.calendarDays[(row-1)*7+col],value=this.getValue(row,col),rect=sheet.getCellRect(row,col),host=$('ss').getBoundingClientRect(),dy=event.clientY-host.top-rect.y,dx=event.clientX-host.left-rect.x;
-      if(!view().dateField){alert('请先添加日期字段并在日历中选择');return true;}
+      if(!view().dateField){showToast('请先添加日期字段并在日历中选择','error');return true;}
       if(dy<28&&dx>rect.width-28){openRecord(null,{[view().dateField]:day});return true;}
       const index=Math.floor((dy-33)/25),record=dy>=33&&index<2?value.records[index]:null;
       if(record)drag={kind:'calendar',id:record.id,field:view().dateField,x:event.clientX,y:event.clientY,moved:false};
@@ -387,7 +393,7 @@ class TaskDataProvider {
     if (item?.kind === 'add') { openRecord(null, item.values || (groupFields(view())[0] ? { [groupFields(view())[0]]: item.key } : {})); return true; }
     if (row === 0 && col === this.colCount - 1) { openNewField(); return true; }
     if (item?.kind === 'record' && col === 0) { openRecord(item.id); return true; }
-    if(item?.kind==='record'&&this.fields[col-1]?.type==='button'){const field=this.fields[col-1];if(field.action==='complete'){const status=state.fields.find(f=>f.id==='status');if(status?.options?.includes('已完成'))commit('快捷完成任务',()=>updateRecord(state,item.id,{status:'已完成'}));else alert('当前表需要包含“已完成”选项的状态字段');}else openRecord(item.id);return true;}
+    if(item?.kind==='record'&&this.fields[col-1]?.type==='button'){const field=this.fields[col-1];if(field.action==='complete'){const status=state.fields.find(f=>f.id==='status');if(status?.options?.includes('已完成'))commit('快捷完成任务',()=>updateRecord(state,item.id,{status:'已完成'}));else showToast('当前表需要包含“已完成”选项的状态字段','error');}else openRecord(item.id);return true;}
     return false;
   }
   onDoubleClick() { return view().type === 'board'; }
@@ -433,8 +439,12 @@ function render() {
     sheet.setRowCount(Math.max(provider.rowCount,current.type==='grid'?40:1));
     sheet.setColumnCount(Math.max(provider.colCount, 1));
     dataRange.range(new S.Range(0, 0, provider.rowCount, provider.colCount));
-    sheet.frozenRowCount(current.type === 'calendar' || current.type === 'gallery' ? 0 : 1);
-    sheet.frozenColumnCount(current.type === 'grid'||current.type==='gantt' ? 2 : 0);
+    const frozenRows = current.type === 'gallery' ? 0 : 1;
+    const frozenCols = current.type === 'grid' || current.type === 'gantt' ? 2 : 0;
+    // Re-assigning the same frozen count makes SpreadJS scroll back to the top,
+    // so only touch it when the target view needs a different value.
+    if (sheet.frozenRowCount() !== frozenRows) sheet.frozenRowCount(frozenRows);
+    if (sheet.frozenColumnCount() !== frozenCols) sheet.frozenColumnCount(frozenCols);
     if (current.type === 'grid') {
       sheet.setColumnWidth(0, 44);
       provider.fields.forEach((field, i) => sheet.setColumnWidth(i + 1, field.width));
@@ -447,7 +457,6 @@ function render() {
     } else if(current.type==='calendar') {
       for(let c=0;c<7;c++)sheet.setColumnWidth(c,Math.max(100,Math.floor(($('ss').clientWidth-20)/7)));
       sheet.setRowHeight(0,30);for(let r=1;r<7;r++)sheet.setRowHeight(r,Math.max(105,Math.floor(($('ss').clientHeight-50)/6)));
-      sheet.frozenRowCount(1);
     } else if(current.type==='gantt') {
       sheet.setColumnWidth(0,220);sheet.setColumnWidth(1,120);
       for(let c=2;c<provider.colCount;c++)sheet.setColumnWidth(c,44);
@@ -456,15 +465,24 @@ function render() {
       const width=Math.floor(($('ss').clientWidth-20)/provider.galleryColumns);
       for(let c=0;c<provider.colCount;c++)sheet.setColumnWidth(c,width);
       for(let r=0;r<sheet.getRowCount();r++)sheet.setRowHeight(r,245);
-      sheet.frozenRowCount(0);
     }
     dataRange.repaint();
   } finally { spread.resumePaint(); }
   const viewButton=(v,role)=>{const button=document.createElement('button');button.dataset.view=v.id;button.className=role==='tab'?'view-tab':'side-view';button.setAttribute('role',role);button.setAttribute('aria-selected',String(v.id===state.activeView));button.classList.toggle('active',v.id===state.activeView);button.innerHTML=`<svg><use href="#i-${v.type==='board'?'board':v.type==='grid'?'table':v.type==='calendar'?'calendar':v.type==='gantt'?'gantt':'gallery'}"/></svg>`;button.append(document.createTextNode(v.name));button.onclick=()=>switchView(v.id);button.oncontextmenu=e=>{e.preventDefault();switchView(v.id);openManager('view');};return button;};
   $('view-tabs').replaceChildren(...state.views.map(v=>viewButton(v,'tab')));
-  $('side-views').replaceChildren(...state.views.map(v=>viewButton(v,'button')));
-  $('table-select').replaceChildren(...workspace.tables.map(t=>new Option(t.name,t.id)));
-  $('table-select').value=state.id;
+  $('table-list').replaceChildren(...workspace.tables.map(table => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'table-item' + (table.id === state.id ? ' active' : '');
+    button.setAttribute('aria-current', String(table.id === state.id));
+    button.innerHTML = '<svg><use href="#i-table"/></svg>';
+    const name = document.createElement('span'); name.className = 'table-name'; name.textContent = table.name;
+    const count = document.createElement('span'); count.className = 'table-count'; count.textContent = table.records.length;
+    button.append(name, count);
+    button.onclick = () => switchTable(table.id);
+    button.oncontextmenu = event => { event.preventDefault(); if (table.id !== state.id) switchTable(table.id); openManager('table'); };
+    return button;
+  }));
   document.querySelector('h1').textContent=state.name;
   document.querySelectorAll('[data-view]').forEach(button => {
     const active = button.dataset.view === state.activeView;
@@ -483,7 +501,6 @@ function render() {
   $('record-count').textContent = count === state.records.length ? `${count} 条记录` : `${count} / ${state.records.length} 条记录`;
   const groups = leafGroups(state,current);
   $('group-count').textContent = groupFields(current).length ? `${groups.length} 个分组` : '未分组';
-  $('sidebar-count').textContent = state.records.length;
   $('undo-button').disabled = !history.past.length;
   $('redo-button').disabled = !history.future.length;
   $('fields-button').disabled = false;
@@ -519,6 +536,18 @@ function switchView(id) {
   render(); save();
 }
 
+function switchTable(id) {
+  if (!sheet.endEdit()) return;
+  if (pendingBefore) flushEdits();
+  workspace.activeTableId = id;
+  state = workspace.tables.find(t => t.id === id);
+  if (!state.views.some(v => v.id === state.activeView)) state.activeView = state.views[0].id;
+  provider.rebuild();
+  sheet.setActiveCell(0, 0);
+  sheet.showCell(0, 0, S.VerticalPosition.top, S.HorizontalPosition.left);
+  render(); save();
+}
+
 function openTool(id, anchor) {
   sheet.endEdit();
   const dialog = $(id);
@@ -536,26 +565,120 @@ function setOptions(select, choices, blankLabel) {
 
 function showFields() {
   const container = $('field-list'); container.replaceChildren();
-  const ordered = [...view().columns.map(id => state.fields.find(f => f.id === id)).filter(Boolean), ...state.fields.filter(f => !view().columns.includes(f.id))];
-  ordered.forEach((field, i) => {
-    const row = document.createElement('div'); row.className = 'field-row';
+  const current = view();
+  const order = current.fieldOrder || [];
+  const fieldsById = new Map(state.fields.map(field => [field.id, field]));
+  const ordered = [...order.map(id => fieldsById.get(id)).filter(Boolean), ...state.fields.filter(field => !order.includes(field.id))];
+  const fullOrder = ordered.map(field => field.id);
+  current.fieldOrder = fullOrder;
+  const setOrder = ids => { current.fieldOrder = ids; current.columns = ids.filter(id => current.columns.includes(id)); };
+  ordered.forEach(field => {
+    const row = document.createElement('div');
+    row.className = 'field-row' + (current.columns.includes(field.id) ? '' : ' is-hidden');
+    const handle = document.createElement('span');
+    handle.className = 'field-drag';
+    handle.textContent = '⠿';
+    handle.title = '拖动排序';
+    handle.draggable = true;
+    handle.setAttribute('aria-hidden', 'true');
+    row.append(handle);
     const label = document.createElement('label');
-    const check = document.createElement('input'); check.type = 'checkbox'; check.checked = view().columns.includes(field.id); check.disabled = field.id === 'title';
-    check.onchange = () => { commit('调整字段显示',()=>{view().columns = check.checked ? [...view().columns, field.id] : view().columns.filter(id => id !== field.id);}); showFields(); };
+    const check = document.createElement('input'); check.type = 'checkbox'; check.checked = current.columns.includes(field.id); check.disabled = field.id === 'title';
+    check.onchange = () => {
+      commit('调整字段显示', () => {
+        const ids = fullOrder;
+        if (check.checked) {
+          if (!current.columns.includes(field.id)) {
+            const at = ids.indexOf(field.id);
+            const before = ids.slice(0, at < 0 ? ids.length : at).filter(id => current.columns.includes(id)).length;
+            current.columns.splice(before, 0, field.id);
+          }
+        } else current.columns = current.columns.filter(id => id !== field.id);
+      });
+      showFields();
+    };
     const type = document.createElement('span'); type.className = 'field-type-icon'; type.textContent = fieldIcons[field.type];
     label.append(check, type, document.createTextNode(field.name)); row.append(label);
     const edit=document.createElement('button');edit.textContent='✎';edit.title='编辑字段';edit.setAttribute('aria-label',`编辑字段${field.name}`);edit.onclick=()=>openNewField(field);row.append(edit);
-    const remove=document.createElement('button');remove.textContent='×';remove.title='删除字段';remove.setAttribute('aria-label',`删除字段${field.name}`);remove.disabled=field.id==='title';remove.onclick=()=>{if(confirm(`删除字段“${field.name}”？`))commit('删除字段',()=>deleteField(state,field.id));showFields();};row.append(remove);
+    const remove=document.createElement('button');remove.textContent='×';remove.title='删除字段';remove.setAttribute('aria-label',`删除字段${field.name}`);remove.disabled=field.id==='title';remove.onclick=async()=>{const ok=await askConfirm({title:'删除字段',message:`删除字段“${field.name}”及其在整张表中的值？`,confirmText:'删除',danger:true});if(ok)commit('删除字段',()=>deleteField(state,field.id));showFields();};row.append(remove);
     for (const [direction, symbol] of [[-1, '↑'], [1, '↓']]) {
       const button = document.createElement('button'); button.textContent = symbol; button.title = direction === -1 ? '上移' : '下移'; button.setAttribute('aria-label', `${button.title}${field.name}`);
-      const visibleIndex = view().columns.indexOf(field.id), target = visibleIndex + direction;
-      button.disabled = visibleIndex < 0 || target < 0 || target >= view().columns.length;
-      button.onclick = () => { commit('调整字段顺序',()=>{const ids = view().columns; [ids[visibleIndex], ids[target]] = [ids[target], ids[visibleIndex]];}); showFields(); };
+      const index = fullOrder.indexOf(field.id), target = index + direction;
+      button.disabled = index < 0 || target < 0 || target >= fullOrder.length;
+      button.onclick = () => { commit('调整字段顺序', () => { const ids = fullOrder.slice(); [ids[index], ids[target]] = [ids[target], ids[index]]; setOrder(ids); }); showFields(); };
       row.append(button);
     }
+    handle.addEventListener('dragstart', event => {
+      dragFieldId = field.id;
+      dragDropIndex = -1;
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', field.id);
+      row.classList.add('dragging');
+    });
+    handle.addEventListener('dragend', () => {
+      dragFieldId = null;
+      dragDropIndex = -1;
+      row.classList.remove('dragging');
+      hideFieldDropLine();
+    });
     container.append(row);
   });
+  const line = document.createElement('div');
+  line.className = 'field-drop-line';
+  line.hidden = true;
+  container.append(line);
 }
+
+function hideFieldDropLine() {
+  const line = $('field-list').querySelector('.field-drop-line');
+  if (line) line.hidden = true;
+}
+function fieldDropIndex(event) {
+  const rows = [...$('field-list').querySelectorAll('.field-row')];
+  for (let i = 0; i < rows.length; i++) {
+    const rect = rows[i].getBoundingClientRect();
+    if (event.clientY < rect.top + rect.height / 2) return i;
+  }
+  return rows.length;
+}
+$('field-list').addEventListener('dragover', event => {
+  if (!dragFieldId) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  const container = event.currentTarget;
+  const rows = [...container.querySelectorAll('.field-row')];
+  const line = container.querySelector('.field-drop-line');
+  if (!line || !rows.length) return;
+  dragDropIndex = fieldDropIndex(event);
+  const ref = dragDropIndex < rows.length ? rows[dragDropIndex] : rows[rows.length - 1];
+  const top = dragDropIndex < rows.length ? ref.offsetTop : ref.offsetTop + ref.offsetHeight;
+  line.style.top = `${top - 1}px`;
+  line.hidden = false;
+});
+$('field-list').addEventListener('dragleave', event => {
+  if (!event.currentTarget.contains(event.relatedTarget)) hideFieldDropLine();
+});
+$('field-list').addEventListener('drop', event => {
+  if (!dragFieldId) return;
+  event.preventDefault();
+  const id = dragFieldId;
+  const index = dragDropIndex >= 0 ? dragDropIndex : fieldDropIndex(event);
+  dragFieldId = null;
+  dragDropIndex = -1;
+  hideFieldDropLine();
+  if (index < 0) return;
+  commit('调整字段顺序', () => {
+    const ids = view().fieldOrder.slice();
+    const from = ids.indexOf(id); if (from < 0) return;
+    ids.splice(from, 1);
+    let to = index;
+    if (from < index) to -= 1;
+    ids.splice(to, 0, id);
+    view().fieldOrder = ids;
+    view().columns = ids.filter(x => view().columns.includes(x));
+  });
+  showFields();
+});
 
 function openNewField(field=null) {
   $('fields-dialog').close();
@@ -681,15 +804,16 @@ $('record-form').onsubmit = event => {
     $('record-dialog').close();
   } catch (error) { $('record-error').textContent = error.message; }
 };
-$('delete-record').onclick = () => {
-  if (!editingId || !confirm('删除这条任务？可以通过撤销恢复。')) return;
+$('delete-record').onclick = async () => {
+  if (!editingId) return;
+  if (!await askConfirm({title:'删除记录',message:'删除这条任务？可以通过撤销恢复。',confirmText:'删除',danger:true})) return;
   commit('删除记录', () => { state.records = state.records.filter(r => r.id !== editingId); }); $('record-dialog').close();
 };
 function undo() { sheet.endEdit(); if (pendingBefore) flushEdits(); history.undo();state=workspace.tables.find(t=>t.id===workspace.activeTableId);render(); save(); }
 function redo() { sheet.endEdit(); if (pendingBefore) flushEdits(); history.redo();state=workspace.tables.find(t=>t.id===workspace.activeTableId);render(); save(); }
 $('undo-button').onclick = undo; $('redo-button').onclick = redo;
 const collapseButton = $('collapse-header');
-const collapsibleBlocks = document.querySelectorAll('.site-header,.page-header,.view-tabs,.view-caption');
+const collapsibleBlocks = document.querySelectorAll('.site-header,.page-header,.view-caption');
 collapseButton.onclick = () => {
   const collapsed = document.body.classList.toggle('header-collapsed');
   // Animating height keeps the blocks in the DOM; make them unreachable for
@@ -701,11 +825,47 @@ collapseButton.onclick = () => {
 };
 const toast = $('toast');
 let toastTimer = 0;
-function showToast(message) {
+function showToast(message, tone = 'success') {
   $('toast-text').textContent = message;
+  $('toast-icon').setAttribute('href', tone === 'error' ? '#i-alert' : '#i-check');
+  toast.classList.toggle('is-error', tone === 'error');
   toast.classList.add('is-visible');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 2600);
+}
+function askConfirm({ title, message, confirmText = '确定', danger = false }) {
+  const dialog = $('confirm-dialog');
+  $('confirm-title').textContent = title;
+  $('confirm-message').textContent = message;
+  const ok = $('confirm-ok');
+  ok.textContent = confirmText;
+  ok.classList.toggle('danger-primary', danger);
+  return new Promise(resolve => {
+    let confirmed = false;
+    ok.onclick = () => { confirmed = true; dialog.close(); };
+    dialog.addEventListener('close', () => resolve(confirmed), { once: true });
+    dialog.showModal();
+  });
+}
+function askText({ title, label = '名称', value = '' }) {
+  const dialog = $('prompt-dialog');
+  $('prompt-title').textContent = title;
+  $('prompt-label').textContent = label;
+  const input = $('prompt-input');
+  input.value = value;
+  return new Promise(resolve => {
+    let result = null;
+    $('prompt-form').onsubmit = event => {
+      event.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+      result = text;
+      dialog.close();
+    };
+    dialog.addEventListener('close', () => resolve(result), { once: true });
+    dialog.showModal();
+    requestAnimationFrame(() => { input.focus(); input.select(); });
+  });
 }
 $('reset-button').onclick = () => $('reset-dialog').showModal();
 $('confirm-reset').onclick = () => {
@@ -724,14 +884,13 @@ $('intro-button').onclick = () => {
 };
 $('intro-dialog').addEventListener('close', () => { introVideo.pause(); if (introVideo.readyState > 0) introVideo.currentTime = 0; });
 introVideo.addEventListener('error', () => { $('intro-fallback').hidden = false; });
-$('table-select').onchange=()=>{if(!sheet.endEdit()){$('table-select').value=state.id;return;}if(pendingBefore)flushEdits();workspace.activeTableId=$('table-select').value;state=workspace.tables.find(t=>t.id===workspace.activeTableId);render();save();};
-$('table-select').oncontextmenu=event=>{event.preventDefault();openManager('table');};$('manage-table').onclick=()=>openManager('table');$('manage-view').onclick=()=>openManager('view');
+$('manage-table').onclick=()=>openManager('table');$('manage-view').onclick=()=>openManager('view');
 let manageKind='view';
 function openManager(kind){manageKind=kind;$('manage-title').textContent=kind==='view'?`管理视图：${view().name}`:`管理数据表：${state.name}`;$('delete-item').hidden=kind==='view'?state.views.length<2:workspace.tables.length<2;$('manage-dialog').showModal();}
-$('rename-item').onclick=()=>{const item=manageKind==='view'?view():state;const name=prompt('输入新名称',item.name);if(name?.trim())commit('重命名',()=>item.name=name.trim());$('manage-dialog').close();};
+$('rename-item').onclick=async()=>{const item=manageKind==='view'?view():state;$('manage-dialog').close();const name=await askText({title:manageKind==='view'?'重命名视图':'重命名数据表',value:item.name});if(name)commit('重命名',()=>item.name=name);};
 $('duplicate-item').onclick=()=>{if(manageKind==='view')commit('复制视图',()=>{const copy=structuredClone(view());copy.id=uid('view');copy.name=`${view().name} 副本`;state.views.splice(state.views.indexOf(view())+1,0,copy);state.activeView=copy.id;});else commit('复制数据表',()=>{const copy=structuredClone(state);copy.id=uid('table');copy.name=state.name+' 副本';copy.records=copy.records.map(r=>({...r,id:uid('record')}));workspace.tables.push(copy);workspace.activeTableId=copy.id;state=copy;});$('manage-dialog').close();};
-$('delete-item').onclick=()=>{if(manageKind==='view'){const id=view().id;if(confirm(`删除视图“${view().name}”？`))commit('删除视图',()=>{state.views=state.views.filter(v=>v.id!==id);if(state.activeView===id)state.activeView=state.views[0].id;});}else{const id=state.id;if(confirm(`删除数据表“${state.name}”？`))commit('删除数据表',()=>{workspace.tables=workspace.tables.filter(t=>t.id!==id);workspace.activeTableId=workspace.tables[0].id;state=workspace.tables[0];});}$('manage-dialog').close();};
-$('add-table').onclick=()=>{const name=prompt('新数据表名称','新数据表');if(!name?.trim())return;commit('新建数据表',()=>{const table=newTable(name.trim());workspace.tables.push(table);workspace.activeTableId=table.id;state=table;});};
+$('delete-item').onclick=async()=>{const isView=manageKind==='view',id=isView?view().id:state.id,name=isView?view().name:state.name;$('manage-dialog').close();const ok=await askConfirm({title:isView?'删除视图':'删除数据表',message:isView?`删除视图“${name}”？`:`删除数据表“${name}”？该表及其记录会被移除。`,confirmText:'删除',danger:true});if(!ok)return;if(isView)commit('删除视图',()=>{state.views=state.views.filter(v=>v.id!==id);if(state.activeView===id)state.activeView=state.views[0].id;});else commit('删除数据表',()=>{workspace.tables=workspace.tables.filter(t=>t.id!==id);workspace.activeTableId=workspace.tables[0].id;state=workspace.tables[0];});};
+$('add-table').onclick=async()=>{const name=await askText({title:'新建数据表',label:'数据表名称',value:'新数据表'});if(!name)return;commit('新建数据表',()=>{const table=newTable(name);workspace.tables.push(table);workspace.activeTableId=table.id;state=table;});};
 $('add-view').onclick=()=>{$('view-form').reset();setOptions($('view-form').elements.type,Object.entries(VIEW_TYPES).map(([id,name])=>({id,name})));$('view-dialog').showModal();};
 $('view-form').onsubmit=event=>{event.preventDefault();const form=event.currentTarget;const type=form.elements.type.value,name=form.elements.name.value.trim();if(!name)return;commit('新建视图',()=>{const item=makeView(state,type,name);state.views.push(item);state.activeView=item.id;});$('view-dialog').close();};
 document.querySelectorAll('[data-close]').forEach(button => button.onclick = () => button.closest('dialog').close());
@@ -772,12 +931,12 @@ document.addEventListener('mouseup', event => {
   const finished = drag; drag = null; ghost?.remove(); ghost = null; dropColumn = -1;
   if (!finished.moved) { openRecord(finished.id); return; }
   if(finished.kind==='calendar'){
-    const hit=hitCell(event);if(hit&&hit.row>0){const date=provider.calendarDays[(hit.row-1)*7+hit.col];try{commit('日历拖动改期',()=>updateRecord(state,finished.id,{[finished.field]:date}));}catch(error){alert(error.message);dataRange.repaint();}}else dataRange.repaint();return;
+    const hit=hitCell(event);if(hit&&hit.row>0){const date=provider.calendarDays[(hit.row-1)*7+hit.col];try{commit('日历拖动改期',()=>updateRecord(state,finished.id,{[finished.field]:date}));}catch(error){showToast(error.message,'error');dataRange.repaint();}}else dataRange.repaint();return;
   }
   if(finished.kind==='gantt'){
     const hit=hitCell(event);if(!hit||hit.col<2){dataRange.repaint();return;}
     const delta=hit.col-finished.sourceColumn,start=finished.mode==='end'?finished.start:addDays(finished.start,delta),end=finished.mode==='start'?finished.end:addDays(finished.end,delta);
-    if(end<start){alert('结束日期不能早于开始日期');dataRange.repaint();return;}
+    if(end<start){showToast('结束日期不能早于开始日期','error');dataRange.repaint();return;}
     commit('甘特拖动改期',()=>updateRecord(state,finished.id,{[finished.startField]:start,[finished.endField]:end}));return;
   }
   const col = hitColumn(event);

@@ -46,7 +46,88 @@ export function createDocument() {
   return { version: 1, fields, records, activeView: 'table', views: [makeView('table', '任务管理表', 'grid', 'priority'), makeView('status', '进度看板', 'board', 'status'), makeView('owner', '人员任务分配看板', 'board', 'owner')] };
 }
 
+function createCustomerTable() {
+  const fields = [
+    { id: 'title', name: '客户名称', type: 'text', width: 220 },
+    { id: 'owner', name: '负责人', type: 'person', options: OWNERS, width: 120 },
+    { id: 'stage', name: '跟进阶段', type: 'select', options: ['初步沟通', '需求确认', '方案报价', '合同签订'], defaultValue: '初步沟通', width: 132 },
+    { id: 'amount', name: '预计金额', type: 'number', format: 'currency', width: 140 },
+    { id: 'first', name: '首次接触', type: 'date', width: 130 },
+    { id: 'next', name: '下次跟进', type: 'date', width: 130 },
+    { id: 'note', name: '最新进展', type: 'text', width: 260 }
+  ];
+  const rows = [
+    ['华东制造集团', '林晓', '需求确认', 128000, 3, '已完成第二轮需求访谈'],
+    ['星辰科技', '周北北', '方案报价', 86000, 1, '方案已发出，等待反馈'],
+    ['远航物流', '黄泡泡', '初步沟通', 0, 5, '展会获取的线索'],
+    ['新禾零售', '刘贝拉', '合同签订', 240000, 2, '合同条款确认中'],
+    ['北辰能源', '林晓', '需求确认', 150000, 7, '技术方案评审排期'],
+    ['云帆传媒', '周北北', '初步沟通', 45000, 4, '老客户转介绍'],
+    ['恒基地产', '黄泡泡', '方案报价', 320000, -2, '报价后跟进中，已逾期'],
+    ['青松教育', '刘贝拉', '合同签订', 60000, 6, '等待用印']
+  ];
+  const records = rows.map((r, i) => ({ id: `customer-${i + 1}`, title: r[0], owner: r[1], stage: r[2], amount: r[3], first: relativeDate(r[4] - 12), next: relativeDate(r[4]), note: r[5] }));
+  const table = { id: 'table-customers', name: '客户跟进', fields, records, views: [] };
+  table.views = [makeView(table, 'grid', '客户列表'), makeView(table, 'board', '阶段看板'), makeView(table, 'calendar', '跟进日历')];
+  table.views[1].groupFields = ['stage'];
+  table.views[2].dateField = 'next';
+  table.activeView = table.views[0].id;
+  return table;
+}
 
+function createContentTable() {
+  const fields = [
+    { id: 'title', name: '内容标题', type: 'text', width: 240 },
+    { id: 'channel', name: '渠道', type: 'select', options: ['公众号', '视频号', '小红书', '官网'], defaultValue: '公众号', width: 118 },
+    { id: 'owner', name: '负责人', type: 'person', options: OWNERS, width: 120 },
+    { id: 'stage', name: '发布状态', type: 'select', options: ['待撰写', '待审核', '已发布'], defaultValue: '待撰写', width: 118 },
+    { id: 'start', name: '撰写开始', type: 'date', width: 130 },
+    { id: 'publish', name: '发布日期', type: 'date', width: 130 },
+    { id: 'views', name: '阅读量', type: 'number', format: 'integer', width: 110 }
+  ];
+  const rows = [
+    ['年度产品白皮书解读', '公众号', '林晓', '已发布', -3, 12400],
+    ['新版功能上手视频', '视频号', '周北北', '已发布', -1, 8600],
+    ['双十一活动预热', '小红书', '黄泡泡', '待审核', 2, 3200],
+    ['客户案例：华东制造', '公众号', '刘贝拉', '待撰写', 5, 5800],
+    ['团队协作方法分享', '视频号', '林晓', '待撰写', 6, 1500],
+    ['秋冬穿搭指南', '小红书', '周北北', '待审核', 3, 7400],
+    ['官网产品页改版说明', '官网', '黄泡泡', '待撰写', 7, 2600],
+    ['年度总结长图', '公众号', '刘贝拉', '待撰写', 9, 9200]
+  ];
+  const records = rows.map((r, i) => ({ id: `content-${i + 1}`, title: r[0], channel: r[1], owner: r[2], stage: r[3], start: relativeDate(r[4] - 4), publish: relativeDate(r[4]), views: r[5] }));
+  const table = { id: 'table-content', name: '内容排期', fields, records, views: [] };
+  table.views = [makeView(table, 'grid', '内容列表'), makeView(table, 'board', '排期看板'), makeView(table, 'calendar', '发布日历')];
+  table.views[1].groupFields = ['stage'];
+  table.views[2].dateField = 'publish';
+  table.activeView = table.views[0].id;
+  return table;
+}
+
+// Older saved sample tables only had one date field, which left gantt views without
+// a start/end pair. Add the missing field and backfill it once.
+function backfillSampleDates(workspace) {
+  const patches = [
+    ['table-customers', { id: 'first', name: '首次接触', type: 'date', width: 130 }, 'next', 12],
+    ['table-content', { id: 'start', name: '撰写开始', type: 'date', width: 130 }, 'publish', 4]
+  ];
+  for (const [tableId, field, anchor, days] of patches) {
+    const table = workspace.tables.find(t => t.id === tableId);
+    if (!table || !table.fields.some(f => f.id === anchor)) continue;
+    if (!table.fields.some(f => f.id === field.id)) {
+      const index = table.fields.findIndex(f => f.id === anchor);
+      table.fields.splice(index < 0 ? table.fields.length : index, 0, field);
+      for (const v of table.views) {
+        if (!v.columns.includes(field.id)) {
+          const at = v.columns.indexOf(anchor);
+          v.columns.splice(at < 0 ? v.columns.length : at, 0, field.id);
+        }
+      }
+    }
+    for (const r of table.records) if (r[field.id] === undefined) r[field.id] = r[anchor] ? addDays(r[anchor], -days) : '';
+    for (const v of table.views) if (v.type === 'gantt' && (!v.startField || v.startField === v.endField)) { v.startField = field.id; v.endField = anchor; }
+  }
+}
 export const TYPES = {text:'文本',number:'数字',date:'日期',select:'单选',multiselect:'多选',person:'人员（本地成员）',progress:'进度',rating:'评分',button:'按钮',creator:'创建人'};
 export const VIEW_TYPES = {grid:'表格',board:'看板',calendar:'日历',gantt:'甘特',gallery:'画册'};
 export const READ_ONLY = ['computed','creator','button'];
@@ -57,7 +138,18 @@ export const addDays = (key, days) => relativeDate(days, new Date(key+'T00:00:00
 export const dayDiff = (a,b) => Math.round((Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/86400000);
 export const editable = field => !READ_ONLY.includes(field.type);
 export function makeView(table,type,name) {
-  return {id:uid('view'),type,name:name||VIEW_TYPES[type],columns:table.fields.map(f=>f.id),query:'',filters:{logic:'and',conditions:[]},groupFields:type==='board'?[table.fields.find(f=>['select','person'].includes(f.type))?.id||'title']:[],sorts:[],collapsed:[],month:dateKey().slice(0,7),dateField:table.fields.find(f=>f.type==='date')?.id||'',startField:table.fields.find(f=>f.id==='start'&&f.type==='date')?.id||'',endField:table.fields.find(f=>f.id==='due'&&f.type==='date')?.id||'',timelineStart:addDays(dateKey(),-7),days:42};
+  const dates=table.fields.filter(f=>f.type==='date').map(f=>f.id);
+  const startField=table.fields.find(f=>f.id==='start'&&f.type==='date')?.id||dates[0]||'';
+  const endField=table.fields.find(f=>f.id==='due'&&f.type==='date')?.id||dates[1]||dates[0]||'';
+  return {id:uid('view'),type,name:name||VIEW_TYPES[type],columns:table.fields.map(f=>f.id),fieldOrder:table.fields.map(f=>f.id),query:'',filters:{logic:'and',conditions:[]},groupFields:type==='board'?[table.fields.find(f=>['select','person'].includes(f.type))?.id||'title']:[],sorts:[],collapsed:[],month:dateKey().slice(0,7),dateField:dates[0]||'',startField,endField,timelineStart:addDays(dateKey(),-7),days:42};
+}
+// fieldOrder keeps every field in a stable position, including hidden ones, so
+// toggling visibility never reshuffles the list. columns stays the visible subset.
+function normalizeFieldOrder(table,view) {
+  const fieldIds=table.fields.map(f=>f.id);
+  const base=Array.isArray(view.fieldOrder)?view.fieldOrder:view.columns;
+  view.fieldOrder=[...base.filter(id=>fieldIds.includes(id)),...fieldIds.filter(id=>!base.includes(id))];
+  view.columns=view.fieldOrder.filter(id=>view.columns.includes(id));
 }
 export function upgradeTable(table, addViews=false) {
   table.id ||= uid('table'); table.name ||= '任务管理';
@@ -71,10 +163,15 @@ export function upgradeTable(table, addViews=false) {
   table.views.forEach(v=>{
     const defaults=makeView(table,v.type,v.name);
     const conditions=[];
+    const previousOrder=Array.isArray(v.fieldOrder)?[...v.fieldOrder]:Array.isArray(v.columns)?[...v.columns]:[];
     if(v.filter?.status) conditions.push({field:'status',op:'eq',value:v.filter.status});
     if(v.filter?.owner) conditions.push({field:'owner',op:'eq',value:v.filter.owner});
     if(v.filter?.overdue) conditions.push({field:'overdue',op:'eq',value:'已延期'});
     Object.assign(v,{...defaults,...v,filters:v.filters||{logic:'and',conditions},groupFields:groupFields(v),sorts:sortRules(v)});
+    v.fieldOrder=previousOrder;
+    normalizeFieldOrder(table,v);
+    const dates=new Set(table.fields.filter(f=>f.type==='date').map(f=>f.id));
+    for(const key of ['dateField','startField','endField']) if(!dates.has(v[key])) v[key]=defaults[key];
     delete v.filter; delete v.sort; delete v.groupBy;
   });
   return table;
@@ -84,9 +181,10 @@ export function createWorkspace() {
   table.fields.find(f=>f.id==='owner').type='person';
   table.fields.push({id:'progress',name:'完成进度',type:'progress',width:150,defaultValue:0},{id:'tags',name:'任务标签',type:'multiselect',options:['项目','运营','内部'],width:165,defaultValue:[]},{id:'rating',name:'优先评分',type:'rating',width:140,defaultValue:0},{id:'creator',name:'创建人',type:'creator',width:120},{id:'action',name:'快捷操作',type:'button',action:'detail',buttonLabel:'查看详情',width:120});
   table.records.forEach((r,i)=>Object.assign(r,{progress:r.status==='已完成'?100:r.status==='进行中'?45:0,tags:[i%2?'运营':'项目'],rating:i%5+1,__creator:'林晓'}));
-  table.views.forEach(v=>v.columns=table.fields.map(f=>f.id));
+  table.views.forEach(v=>{v.columns=table.fields.map(f=>f.id);v.fieldOrder=v.columns.slice();});
   table.views.find(v=>v.type==='calendar').dateField='due';
-  return {version:2,members:OWNERS,currentUser:'林晓',activeTableId:table.id,tables:[table]};
+  const extraTables=[createCustomerTable(),createContentTable()].map(t=>upgradeTable(t));
+  return {version:2,members:OWNERS,currentUser:'林晓',activeTableId:table.id,tables:[table,...extraTables],sampleTables:3,sampleTableDates:1,sampleContentViewCounts:1};
 }
 function readWorkspace(storage) {
   const text=storage.getItem(STORAGE_KEY);
@@ -98,6 +196,23 @@ function readWorkspace(storage) {
     if(value.version!==2||!value.tables?.length) throw new Error('本地工作区格式不正确，原数据已保留');
     value.tables.forEach(t=>upgradeTable(t));
     if(!value.tables.some(t=>t.id===value.activeTableId)) value.activeTableId=value.tables[0].id;
+    // Older saved workspaces get the extra sample tables once; user deletions stay deleted afterwards.
+    if(value.sampleTables!==3){
+      for(const table of [createCustomerTable(),createContentTable()]){
+        if(!value.tables.some(t=>t.id===table.id)) value.tables.push(upgradeTable(table));
+      }
+      value.sampleTables=3;
+    }
+    if((value.sampleTableDates??0)<1){ backfillSampleDates(value); value.sampleTableDates=1; }
+    if(value.sampleContentViewCounts!==1){
+      // The first sample set left most 内容排期 rows at 0; give them varied, non-sorted counts once.
+      const table=value.tables.find(t=>t.id==='table-content');
+      if(table){
+        const fills={'content-3':3200,'content-4':5800,'content-5':1500,'content-6':7400,'content-7':2600,'content-8':9200};
+        table.records.forEach(r=>{ if(fills[r.id]!==undefined && !Number(r.views)) r.views=fills[r.id]; });
+      }
+      value.sampleContentViewCounts=1;
+    }
     return value;
   }
   const old=storage.getItem(LEGACY_KEY);
@@ -246,7 +361,8 @@ export function repairViews(table) {
     v.columns=v.columns.filter(id=>ids.has(id));if(!v.columns.includes('title')) v.columns.unshift('title');
     v.groupFields=groupFields(v).filter(id=>ids.has(id)&&['select','person','multiselect'].includes(table.fields.find(f=>f.id===id).type));
     v.sorts=sortRules(v).filter(s=>ids.has(s.field));v.filters=cleanFilters(v.filters,ids);v.collapsed=[];
-    for(const key of ['dateField','startField','endField']) if(!dates.includes(v[key])) v[key]=dates[0]||'';
+    normalizeFieldOrder(table,v);
+    for(const key of ['dateField','startField','endField']) if(!dates.includes(v[key])) v[key]=key==='endField'?(dates[1]||dates[0]||''):(dates[0]||'');
   });
 }
 export function saveField(table,field,editingId) {
