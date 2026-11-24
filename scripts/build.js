@@ -8,6 +8,6 @@ if (path.dirname(distRoot) !== path.resolve(projectRoot) || path.basename(distRo
 }
 await fs.rm(distRoot, { recursive: true, force: true });
 await fs.cp(publicRoot, distRoot, { recursive: true });
-console.log('构建完成：dist/（包含页面、应用代码与字体资源）');
-console.log('SpreadJS 通过 CDN 加载，不再打包进 dist/。');
+console.log('构建完成：dist/（包含页面与应用代码）');
+console.log('SpreadJS 和 Inter 字体均通过 CDN 加载，不再打包进 dist/。');
 console.log('运行 npm run preview 预览；也可将 dist/ 交给静态 Web 服务器托管。');

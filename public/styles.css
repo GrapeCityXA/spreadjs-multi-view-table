@@ -1,9 +1,9 @@
 /*!
  * Inter Latin subset — Inter by Rasmus Andersson, SIL Open Font License 1.1.
- * Self-hosted in ./fonts/ so it also works on local IIS and sub-path deployments.
+ * Loaded from the GrapeCity CDN.
  */
-@font-face{font-family:"Inter";font-style:normal;font-weight:400;font-display:swap;src:url("./fonts/Inter-Regular.woff2") format("woff2")}
-@font-face{font-family:"Inter";font-style:normal;font-weight:600;font-display:swap;src:url("./fonts/Inter-SemiBold.woff2") format("woff2")}
+@font-face{font-family:"Inter";font-style:normal;font-weight:400;font-display:swap;src:url("https://gcdn-cdn.grapecity.com.cn/fonts/Inter-4.1/web/Inter-Regular.woff2") format("woff2")}
+@font-face{font-family:"Inter";font-style:normal;font-weight:600;font-display:swap;src:url("https://gcdn-cdn.grapecity.com.cn/fonts/Inter-4.1/web/Inter-SemiBold.woff2") format("woff2")}
 :root{--font-sans:"Inter","Microsoft YaHei","微软雅黑",-apple-system,BlinkMacSystemFont,"Noto Sans","Liberation Sans","PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Noto Sans SC","WenQuanYi Micro Hei",system-ui,sans-serif;font-family:var(--font-sans);font-optical-sizing:auto;color:#2b2529;font-size:13px;--accent:#941966;--line:#ebe6ea;--muted:#8a92a3}
 [hidden]{display:none!important}
 .view-tabs{overflow-x:auto;overflow-y:hidden;min-height:46px}.view-tab{flex-shrink:0}.sidebar nav{overflow:auto;min-height:0}.filter-group{padding:9px;border:1px solid #ebdfe6;border-radius:7px;margin:7px 0}.filter-group-head{display:flex;gap:6px;align-items:center}.filter-group-head select{flex:1}.filter-group-head button{padding:6px}.filter-condition{grid-template-columns:1fr 1fr 1fr 28px!important}.filter-subgroup{display:flex;align-items:flex-start;gap:2px}.filter-subgroup>section{flex:1;min-width:0}.two-columns{display:grid;grid-template-columns:1fr 1fr;gap:12px}#filter-dialog{width:660px;max-height:80vh}#manage-dialog{width:330px}#new-field-dialog{max-height:90vh;overflow:auto}#records-list{display:flex;flex-direction:column;max-height:50vh;overflow:auto}#records-list button{justify-content:flex-start;text-align:left;white-space:normal;border-bottom:1px solid var(--line)}dialog select[multiple]{height:96px}#field-conversion-hint{font-size:11px}
