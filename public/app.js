@@ -17,6 +17,8 @@ let ghost = null;
 let dropColumn = -1;
 let dragFieldId = null;
 let dragDropIndex = -1;
+let rowDropIndex = -1;
+let rowDropAfter = false;
 let storageAvailable = true;
 
 const palette = {
@@ -38,7 +40,7 @@ const colorFor = value => palette[value] || ['#f6eaf1', '#8a3c6b'];
 const spread = new S.Workbook($('ss'), {
   sheetCount: 1, tabStripVisible: false, newTabVisible: false,
   allowUserDragDrop: false, allowUserDragFill: false, allowUserResize: false,
-  allowUndo: false, showHorizontalScrollbar: true, showVerticalScrollbar: true,
+  allowUndo: false, allowContextMenu: false, showHorizontalScrollbar: true, showVerticalScrollbar: true,
   scrollbarShowMax: false
 });
 const sheet = spread.getActiveSheet();
@@ -119,7 +121,14 @@ class FieldCell extends S.CellTypes.Base {
       ctx.fillStyle = this.field.id === 'note' ? '#8a93a4' : '#465168'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
       let display=text;
       if(this.field.type==='number'&&value!==''&&value!=null){const options={integer:{maximumFractionDigits:0},decimal:{minimumFractionDigits:2,maximumFractionDigits:2},percent:{style:'percent',maximumFractionDigits:2},currency:{style:'currency',currency:'CNY'}};display=new Intl.NumberFormat('zh-CN',options[this.field.format]||{maximumFractionDigits:10}).format(Number(value));}
-      clippedText(ctx, display, x + 12, y + h / 2, w - 24);
+      const showView = this.field.id === 'title' && view().type === 'grid' && context?.sheet?.getActiveRowIndex() === context.row;
+      clippedText(ctx, display, x + 12, y + h / 2, w - (showView ? 68 : 24));
+      if (showView) {
+        const bx = x + w - 50, by = y + h / 2 - 10;
+        rounded(ctx, bx, by, 42, 20, 10, '#f8ebf3', '#e8d9e1');
+        ctx.font = sansFont('10px'); ctx.fillStyle = '#941966'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('查看', bx + 21, y + h / 2);
+      }
     }
     ctx.restore();
   }
@@ -172,6 +181,34 @@ class LayoutCell extends S.CellTypes.Base {
     ctx.restore();
   }
   format(value) { return value?.text || value?.key || ''; }
+}
+
+// Row-number cell: shows a grip handle when its row is the active one.
+class IndexCell extends S.CellTypes.Base {
+  paint(ctx, value, x, y, w, h, style, context) {
+    if (!ctx) return;
+    const active = context?.sheet ? context.sheet.getActiveRowIndex() === context.row : false;
+    const canDrag = active && !sortRules(view()).length;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    ctx.font = sansFont('11px');
+    ctx.fillStyle = '#a4adbd';
+    ctx.fillText(String(value ?? ''), x + w / 2 + (canDrag ? 5 : 0), y + h / 2);
+    if (canDrag) {
+      ctx.fillStyle = '#b3a5ad';
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 2; col++) {
+          ctx.beginPath();
+          ctx.arc(x + 8 + col * 4, y + h / 2 - 4 + row * 4, 1.8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+    ctx.restore();
+  }
+  format(value) { return String(value ?? ''); }
 }
 
 function paintSummary(ctx,record,x,y,w){
@@ -231,6 +268,7 @@ class TaskDataProvider {
     this.typeName = 'TaskDataProvider';
     this.layoutCell = new LayoutCell();
     this.cardCell = new CardCell();
+    this.indexCell = new IndexCell();
   }
   rebuild() {
     const current = view();
@@ -306,7 +344,8 @@ class TaskDataProvider {
     if(special){const style=new S.Style();style.locked=true;style.backColor='#fff';style.borderBottom=new S.LineBorder('#e9edf3',S.LineStyle.thin);style.borderRight=new S.LineBorder('#e9edf3',S.LineStyle.thin);style.cellType=view().type==='calendar'||view().type==='gantt'?this.cardCell:this.cardCell;return style;}
     const item = this.rows[row];
     const field = this.fields[col - 1];
-    const key = board ? `board:${col}` : `${item?.kind}:${col}`;
+    const dropMark = row === rowDropIndex ? `:drop${rowDropAfter ? 'after' : 'before'}` : '';
+    const key = board ? `board:${col}${dropMark}` : `${item?.kind}:${col}${dropMark}`;
     if (this.styleCache.has(key)) return this.styleCache.get(key);
     const style = new S.Style();
     style.locked = true; style.vAlign = S.VerticalAlign.center;
@@ -320,7 +359,11 @@ class TaskDataProvider {
       style.borderBottom = new S.LineBorder('#edf0f5', S.LineStyle.thin);
       if (item?.kind === 'record') {
         if (field) { style.cellType = this.cells.get(field.id); style.locked = !editable(field); }
-        if (col === 0) { style.hAlign = S.HorizontalAlign.center; style.foreColor = '#a4adbd'; }
+        if (col === 0) { style.cellType = this.indexCell; style.hAlign = S.HorizontalAlign.center; style.foreColor = '#a4adbd'; }
+        if (row === rowDropIndex) {
+          if (rowDropAfter) style.borderBottom = new S.LineBorder('#941966', S.LineStyle.medium);
+          else style.borderTop = new S.LineBorder('#941966', S.LineStyle.medium);
+        }
         style.borderRight = new S.LineBorder('#edf0f5', S.LineStyle.thin);
       } else if (item?.kind === 'header') {
         style.backColor = '#f8f9fc';
@@ -355,6 +398,7 @@ class TaskDataProvider {
     if (view().type === 'board') {
       const group = this.groups[col];
       if (!group) return true;
+      sheet.setActiveCell(row, col);
       if (row === 0) {
         const rect = sheet.getCellRect(0, col);
         const host = $('ss').getBoundingClientRect();
@@ -362,7 +406,7 @@ class TaskDataProvider {
         return true;
       }
       const record = this.recordAt(row, col);
-      if (record) drag = { id: record.id, x: event.clientX, y: event.clientY, sourceColumn: col, moved: false };
+      if (record) drag = { kind: 'card', id: record.id, x: event.clientX, y: event.clientY, sourceColumn: col, moved: false };
       else if (row === group.records.length + 1) openRecord(null, group.values);
       return true;
     }
@@ -392,13 +436,28 @@ class TaskDataProvider {
       view().collapsed = collapsed.includes(item.key) ? collapsed.filter(k => k !== item.key) : [...collapsed, item.key];
       render(); save(); return true;
     }
-    if (item?.kind === 'add') { openRecord(null, item.values || (groupFields(view())[0] ? { [groupFields(view())[0]]: item.key } : {})); return true; }
+    if (item?.kind === 'add') { startInlineRecord(item.values || (groupFields(view())[0] ? { [groupFields(view())[0]]: item.key } : {})); return true; }
     if (row === 0 && col === this.colCount - 1) { openNewField(); return true; }
-    if (item?.kind === 'record' && col === 0) { openRecord(item.id); return true; }
+    if (item?.kind === 'record' && col === 0) {
+      sheet.setActiveCell(row, 0);
+      sheet.setSelection(row, 0, 1, this.colCount);
+      drag = { kind: 'row', id: item.id, x: event.clientX, y: event.clientY, moved: false };
+      return true;
+    }
+    const titleCol = this.fields.findIndex(field => field.id === 'title') + 1;
+    if (item?.kind === 'record' && titleCol > 0 && col === titleCol && sheet.getActiveRowIndex() === row) {
+      const rect = sheet.getCellRect(row, col), host = $('ss').getBoundingClientRect();
+      if (event.clientX - host.left > rect.x + rect.width - 54) { openRecord(item.id); return true; }
+    }
     if(item?.kind==='record'&&this.fields[col-1]?.type==='button'){const field=this.fields[col-1];if(field.action==='complete'){const status=state.fields.find(f=>f.id==='status');if(status?.options?.includes('已完成'))commit('快捷完成任务',()=>updateRecord(state,item.id,{status:'已完成'}));else showToast('当前表需要包含“已完成”选项的状态字段','error');}else openRecord(item.id);return true;}
     return false;
   }
-  onDoubleClick() { return view().type === 'board'; }
+  onDoubleClick(row, col) {
+    if (view().type !== 'board') return false;
+    const record = this.recordAt(row, col);
+    if (record) openRecord(record.id);
+    return true;
+  }
   onContextMenu() { return true; }
   onClear() { return false; }
   toJSON() { return { typeName: this.typeName }; }
@@ -434,6 +493,7 @@ function commit(label, action) {
 }
 
 function render() {
+  hideRowMenu();
   provider.rebuild();
   const current = view();
   spread.suspendPaint();
@@ -509,7 +569,7 @@ function render() {
   $('group-button').disabled=!['grid','board'].includes(current.type);
   const groupName = groupFields(current).map(id=>state.fields.find(f=>f.id===id)?.name).filter(Boolean).join(' / ');
   $('view-description').textContent = current.type === 'grid' ? (groupName ? `按${groupName}分组` : '集中查看和编辑全部任务') : `${VIEW_TYPES[current.type]}视图${groupName?` · ${groupName}`:''}`;
-  $('view-hint').textContent = current.type === 'grid' ? '双击编辑单元格 · 点击序号打开详情' : current.type === 'board'?'点击卡片查看详情 · 拖动卡片调整分组':current.type==='calendar'?'拖动改期 · 日期右上角＋新增':current.type==='gantt'?'拖动任务条改期 · 两端调整起止日期':'点击记录打开详情';
+  $('view-hint').textContent = current.type === 'grid' ? '双击编辑 · 序号拖拽排序 · 右键删除' : current.type === 'board'?'单击选中 · 双击详情 · 拖动调整分组':current.type==='calendar'?'拖动改期 · 日期右上角＋新增':current.type==='gantt'?'拖动任务条改期 · 两端调整起止日期':'点击记录打开详情';
   const period=$('period-control');period.replaceChildren();
   const calendarControl=$('calendar-date-control');
   if(current.type==='calendar'){
@@ -692,6 +752,21 @@ function openNewField(field=null) {
   $('new-field-dialog').showModal();
 }
 
+function startInlineRecord(values = {}) {
+  if (!sheet.endEdit()) return;
+  if (pendingBefore) flushEdits();
+  const id = crypto.randomUUID();
+  const record = { ...defaultsFor(state, workspace.currentUser), ...values, id, title: '' };
+  commit('添加记录', () => { state.records.push(record); });
+  const row = provider.rows.findIndex(item => item.kind === 'record' && item.id === id);
+  if (row < 0) { showToast('已添加记录，但当前筛选或搜索条件下不可见', 'error'); return; }
+  const titleIndex = provider.fields.findIndex(field => field.id === 'title');
+  const col = titleIndex >= 0 ? titleIndex + 1 : 1;
+  sheet.setActiveCell(row, col);
+  sheet.showCell(row, col, S.VerticalPosition.center, S.HorizontalPosition.left);
+  sheet.startEdit(true);
+}
+
 function openRecord(id, defaults = {}) {
   sheet.endEdit();
   if (pendingBefore) flushEdits();
@@ -869,6 +944,44 @@ function askText({ title, label = '名称', value = '' }) {
     requestAnimationFrame(() => { input.focus(); input.select(); });
   });
 }
+let rowMenuRecordId = null;
+function hideRowMenu() {
+  const menu = $('row-menu');
+  if (menu) menu.hidden = true;
+  rowMenuRecordId = null;
+}
+function showRowMenu(id, x, y) {
+  const menu = $('row-menu');
+  rowMenuRecordId = id;
+  menu.hidden = false;
+  const rect = menu.getBoundingClientRect();
+  menu.style.left = `${Math.min(x, innerWidth - rect.width - 8)}px`;
+  menu.style.top = `${Math.min(y, innerHeight - rect.height - 8)}px`;
+}
+$('row-menu-delete').onclick = async () => {
+  const id = rowMenuRecordId;
+  hideRowMenu();
+  const record = findRecord(id);
+  if (!record) return;
+  const ok = await askConfirm({ title: '删除记录', message: `删除“${record.title || '未命名记录'}”？可以通过撤销恢复。`, confirmText: '删除', danger: true });
+  if (ok) commit('删除记录', () => { state.records = state.records.filter(r => r.id !== id); });
+};
+$('ss').addEventListener('contextmenu', event => {
+  event.preventDefault();
+  event.stopPropagation();
+  if (view().type !== 'grid') { hideRowMenu(); return; }
+  const hit = hitCell(event);
+  const item = hit ? provider.rows[hit.row] : null;
+  if (!hit || item?.kind !== 'record') { hideRowMenu(); return; }
+  sheet.endEdit();
+  sheet.setActiveCell(hit.row, hit.col);
+  sheet.setSelection(hit.row, 0, 1, provider.colCount);
+  showRowMenu(item.id, event.clientX, event.clientY);
+}, true);
+document.addEventListener('mousedown', event => {
+  const menu = $('row-menu');
+  if (menu && !menu.contains(event.target)) hideRowMenu();
+});
 $('reset-button').onclick = () => $('reset-dialog').showModal();
 $('confirm-reset').onclick = () => {
   $('reset-dialog').close();
@@ -896,7 +1009,7 @@ $('add-table').onclick=async()=>{const name=await askText({title:'新建数据�
 $('add-view').onclick=()=>{$('view-form').reset();setOptions($('view-form').elements.type,Object.entries(VIEW_TYPES).map(([id,name])=>({id,name})));$('view-dialog').showModal();};
 $('view-form').onsubmit=event=>{event.preventDefault();const form=event.currentTarget;const type=form.elements.type.value,name=form.elements.name.value.trim();if(!name)return;commit('新建视图',()=>{const item=makeView(state,type,name);state.views.push(item);state.activeView=item.id;});$('view-dialog').close();};
 document.querySelectorAll('[data-close]').forEach(button => button.onclick = () => button.closest('dialog').close());
-document.querySelectorAll('.tool-dialog, .center-dialog').forEach(dialog => dialog.addEventListener('click', event => {
+document.querySelectorAll('.tool-dialog, .center-dialog, .drawer').forEach(dialog => dialog.addEventListener('click', event => {
   const rect = dialog.getBoundingClientRect();
   if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
 }));
@@ -917,13 +1030,44 @@ function hitColumn(event) {
   return hit && hit.col >= 0 && hit.col < provider.groups.length ? hit.col : -1;
 }
 function hitCell(event){const rect=$('ss').getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)return null;const hit=sheet.hitTest(event.clientX-rect.left,event.clientY-rect.top);return hit&&hit.row>=0&&hit.row<provider.rowCount&&hit.col>=0&&hit.col<provider.colCount?hit:null;}
+$('ss').addEventListener('mousemove', event => {
+  if (drag && drag.kind === 'row' && drag.moved) {
+    $('ss').classList.add('grabbing-cursor');
+    $('ss').classList.remove('grab-cursor');
+    return;
+  }
+  let grab = false;
+  if (view().type === 'grid' && !sortRules(view()).length) {
+    const hit = hitCell(event);
+    if (hit && hit.col === 0 && provider.rows[hit.row]?.kind === 'record') grab = true;
+  }
+  $('ss').classList.toggle('grab-cursor', grab);
+});
+$('ss').addEventListener('mouseleave', () => {
+  if (!drag || !drag.moved) $('ss').classList.remove('grab-cursor');
+});
 document.addEventListener('mousemove', event => {
   if (!drag) return;
   if (!drag.moved && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) > 6) {
     drag.moved = true; ghost = document.createElement('div'); ghost.className = 'drag-ghost'; ghost.textContent = findRecord(drag.id)?.title; document.body.append(ghost);
+    if (drag.kind === 'row') { $('ss').classList.remove('grab-cursor'); $('ss').classList.add('grabbing-cursor'); }
   }
   if (!drag.moved) return;
   ghost.style.left = `${event.clientX + 15}px`; ghost.style.top = `${event.clientY + 12}px`;
+  if (drag.kind === 'row') {
+    const hit = hitCell(event);
+    const item = hit ? provider.rows[hit.row] : null;
+    let target = item?.kind === 'record' && item.id !== drag.id ? hit.row : -1;
+    let after = false;
+    if (target >= 0) {
+      const rect = sheet.getCellRect(target, 0), host = $('ss').getBoundingClientRect();
+      after = event.clientY - host.top > rect.y + rect.height / 2;
+    }
+    if (target !== rowDropIndex || after !== rowDropAfter) {
+      rowDropIndex = target; rowDropAfter = after; provider.styleCache.clear(); dataRange.repaint();
+    }
+    return;
+  }
   if(drag.kind==='calendar'||drag.kind==='gantt')return;
   const col = hitColumn(event);
   if (col !== dropColumn) { dropColumn = col; provider.styleCache.clear(); dataRange.repaint(); }
@@ -931,7 +1075,42 @@ document.addEventListener('mousemove', event => {
 document.addEventListener('mouseup', event => {
   if (!drag) return;
   const finished = drag; drag = null; ghost?.remove(); ghost = null; dropColumn = -1;
-  if (!finished.moved) { openRecord(finished.id); return; }
+  rowDropIndex = -1; rowDropAfter = false; provider.styleCache.clear();
+  $('ss').classList.remove('grab-cursor', 'grabbing-cursor');
+  if (!finished.moved) {
+    if (finished.kind === 'card' || finished.kind === 'row') return;
+    openRecord(finished.id); return;
+  }
+  if (finished.kind === 'row') {
+    const hit = hitCell(event);
+    const targetItem = hit ? provider.rows[hit.row] : null;
+    if (!hit || targetItem?.kind !== 'record' || targetItem.id === finished.id) { dataRange.repaint(); return; }
+    if (sortRules(view()).length) { showToast('排序状态下不能调整行顺序，请先取消排序', 'error'); dataRange.repaint(); return; }
+    const target = findRecord(targetItem.id);
+    const rect = sheet.getCellRect(hit.row, 0);
+    const host = $('ss').getBoundingClientRect();
+    const after = event.clientY - host.top > rect.y + rect.height / 2;
+    const groupValues = {};
+    for (const fieldId of groupFields(view())) {
+      const field = state.fields.find(f => f.id === fieldId);
+      groupValues[fieldId] = structuredClone(target[fieldId] ?? (field?.type === 'multiselect' ? [] : ''));
+    }
+    const id = finished.id;
+    commit('调整记录顺序', () => {
+      const from = state.records.findIndex(r => r.id === id);
+      if (from < 0) return;
+      const [record] = state.records.splice(from, 1);
+      Object.assign(record, groupValues);
+      let to = state.records.findIndex(r => r.id === target.id);
+      if (to < 0) { state.records.push(record); return; }
+      if (after) to += 1;
+      state.records.splice(to, 0, record);
+    });
+    const newRow = provider.rows.findIndex(item => item.kind === 'record' && item.id === id);
+    if (newRow >= 0) sheet.setActiveCell(newRow, 0);
+    dataRange.repaint();
+    return;
+  }
   if(finished.kind==='calendar'){
     const hit=hitCell(event);if(hit&&hit.row>0){const date=provider.calendarDays[(hit.row-1)*7+hit.col];try{commit('日历拖动改期',()=>updateRecord(state,finished.id,{[finished.field]:date}));}catch(error){showToast(error.message,'error');dataRange.repaint();}}else dataRange.repaint();return;
   }
@@ -947,7 +1126,7 @@ document.addEventListener('mouseup', event => {
     commit('看板拖动更新字段', () => updateRecord(state, finished.id, values));
   } else { provider.styleCache.clear(); dataRange.repaint(); }
 });
-window.addEventListener('blur', () => { drag = null; ghost?.remove(); ghost = null; dropColumn = -1; provider.styleCache.clear(); dataRange.repaint(); });
+window.addEventListener('blur', () => { drag = null; ghost?.remove(); ghost = null; dropColumn = -1; rowDropIndex = -1; rowDropAfter = false; hideRowMenu(); $('ss').classList.remove('grab-cursor', 'grabbing-cursor'); provider.styleCache.clear(); dataRange.repaint(); });
 let resizeFrame=0,resizeTimer=0,lastSize='';
 new ResizeObserver(entries=>{
  const rect=entries[0].contentRect,key=Math.round(rect.width)+'x'+Math.round(rect.height);if(key===lastSize)return;lastSize=key;
@@ -958,6 +1137,26 @@ new ResizeObserver(entries=>{
  resizeTimer=setTimeout(()=>{if(!sheet.endEdit())return;if(pendingBefore)flushEdits();render();},180);
 }).observe($('spread-shell'));
 sheet.bind(S.Events.EditEnded, () => { if (pendingBefore && !editFrame) editFrame = requestAnimationFrame(flushEdits); });
+let lastActiveRow = -1;
+function syncActiveRow() {
+  const row = sheet.getActiveRowIndex();
+  if (row === lastActiveRow) return;
+  const previous = lastActiveRow;
+  lastActiveRow = row;
+  if (view().type !== 'grid') return;
+  // The grid freezes the index/title columns; dataRange.repaint() alone does not
+  // refresh those frozen cells, so repaint the affected cells of both rows.
+  const titleCol = provider.fields.findIndex(field => field.id === 'title') + 1;
+  for (const target of [previous, row]) {
+    if (target < 0) continue;
+    for (const col of [0, titleCol]) {
+      const rect = sheet.getCellRect(target, col);
+      if (rect && rect.height > 0) sheet.repaint(new S.Rect(rect.x, rect.y, rect.width, rect.height));
+    }
+  }
+}
+sheet.bind(S.Events.SelectionChanged, syncActiveRow);
+sheet.bind(S.Events.EnterCell, syncActiveRow);
 
 render(); save();
 // Canvas text is painted with whatever font is ready at that moment; repaint once

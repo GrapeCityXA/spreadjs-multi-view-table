@@ -117,3 +117,9 @@ dialog[open]::backdrop{opacity:1}
 .period-label{font-size:10px;color:#a2aab8;margin-left:4px}
 .calendar-control{display:inline-flex;align-items:center;gap:2px;margin-left:6px;font-size:11px}
 .calendar-control select{height:27px;border:1px solid var(--line);border-radius:5px;background:#fff;color:#59647a;font-size:11px;padding:2px 5px}
+/* Grid row context menu */
+.row-menu{position:fixed;z-index:80;min-width:132px;padding:5px;background:#fff;border:1px solid #e6dfe4;border-radius:8px;box-shadow:0 12px 32px #3a1c2e1f}
+.row-menu button{width:100%;justify-content:flex-start;padding:8px 10px;border-radius:5px;font-size:12px;color:#d64b5a}
+.row-menu button:hover{background:#f8ebf3}
+#ss.grab-cursor,#ss.grab-cursor *{cursor:grab!important}
+#ss.grabbing-cursor,#ss.grabbing-cursor *{cursor:grabbing!important}
