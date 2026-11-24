@@ -3,6 +3,8 @@ import { STORAGE_KEY, createWorkspace, loadWorkspace, fieldValue, valueOf, norma
 GC.Spread.Sheets.LicenseKey = "GrapeCity-Internal-Use-Only,grapecity,*.grapecity.com.cn,412731946916519#B1baJdnSNlTb8FkdwhGMmpmcjNVZw84QSRkczRkUUVmN6JmTnlDdrIndWVWcXt4VYZXUVFDamlEVpBjaSFldyYlb9oVeodkerUUZwIDewNXYPJmeNdVWOxkW4pUSCpFRlR4QiJ5QkVTZCh7KlFDbYVzRXRGOVZ5R0Vje9xETIN5V7Q6d8IWUxF6UwAlWyUWOMN6NCZlZ6NkRX54bOVkRD3yN8k5awlkRxsEUl3USpJkWHJ6N8JUaYVWcKNmQYFWTqpUVLlTQxJzSyNlRp56dhZkclRnWvAFS9YnM7oUeZJHewV6ZvIGR6cjeIRVc4V7MvVGN4wUT6F7VadjVWFXOulzYSpkYT3CSVRWa6Q6MpZmR0VTe4Z5QSNXcsxmI0IyUiwiIDhTR8IUOzEjI0ICSiwCO7gDN4UDN8gTM0IicfJye35XX3JSMDF5ViojIDJCLikTMuYHIp84QoMlSgQWYlJHcTJiOi8kI1tlOiQmcQJCLiQzM7QDOwACMxETM6IDMyIiOiQncDJCLi86Yu46bj9Se4l6YlBXYydmLqIiOiMXbEJCLikydlhGd4FWTo8Wd99WdoNEIlVHWiojIh94QiwiI9ETN6ETO6QTOxMzNyEDNiojIklkIs4XXiQnchh6QhRXYEJCLikUQiwiI4VWZoNFd49WYHJCLiQXZlh6U4J7bwVmUiwiIlxmYhRFdvZXaQJCLi86bpRXYy3mYhxGbvNkIbpjInxmZiwSZzxWYmpjIyNHZisnOiwmbBJye0ICRiwiI34zZ6kTSCZ5LwF7MzoWUsNkNrlkSzIlT8c7RjN5QyxkQthWMCtkcwQnehdWQNpmd8A7L6JTb5Z7Ktp3eMY"
 const S = GC.Spread.Sheets;
 const $ = id => document.getElementById(id);
+const FONT_STACK = 'Inter, "Microsoft YaHei", "微软雅黑", -apple-system, BlinkMacSystemFont, "Noto Sans", "Liberation Sans", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Noto Sans SC", "WenQuanYi Micro Hei", system-ui, sans-serif';
+const sansFont = (size, weight = '') => (weight ? weight + ' ' : '') + size + ' ' + FONT_STACK;
 let workspace = loadWorkspace(localStorage);
 let state = workspace.tables.find(t => t.id === workspace.activeTableId);
 let history = new History(workspace);
@@ -52,7 +54,7 @@ sheet.options.selectionBorderColor = '#941966';
 sheet.options.selectionBackColor = 'rgba(148, 25, 102, 0.06)';
 sheet.options.frozenlineColor = '#e4e9f1';
 sheet.defaults.rowHeight = 38;
-sheet.setDefaultStyle(Object.assign(new S.Style(), { font: '12px "Segoe UI", "Microsoft YaHei", sans-serif', foreColor: '#414b60', backColor: '#ffffff', locked: true, vAlign: S.VerticalAlign.center }));
+sheet.setDefaultStyle(Object.assign(new S.Style(), { font: sansFont('12px'), foreColor: '#414b60', backColor: '#ffffff', locked: true, vAlign: S.VerticalAlign.center }));
 
 function clippedText(ctx, text, x, y, maxWidth) {
   let result = String(text ?? '');
@@ -72,7 +74,7 @@ function rounded(ctx, x, y, width, height, radius, fill, stroke) {
 
 function pill(ctx, text, x, y, maxWidth = 200) {
   const [background, foreground] = colorFor(text);
-  ctx.font = '11px "Segoe UI", "Microsoft YaHei", sans-serif';
+  ctx.font = sansFont('11px');
   ctx.textAlign = 'left';
   const width = Math.min(maxWidth, ctx.measureText(String(text)).width + 20);
   rounded(ctx, x, y, width, 21, 10, background);
@@ -87,9 +89,9 @@ function person(ctx, text, x, y) {
   const i = Math.max(0, (field?.options||workspace.members).indexOf(text));
   ctx.fillStyle = personColors[i % personColors.length];
   ctx.beginPath(); ctx.arc(x + 10, y, 10, 0, 2 * Math.PI); ctx.fill();
-  ctx.font = '9px "Microsoft YaHei", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = 'white';
+  ctx.font = sansFont('9px'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = 'white';
   ctx.fillText(String(text).slice(0, 1), x + 10, y);
-  ctx.textAlign = 'left'; ctx.font = '12px "Microsoft YaHei", sans-serif'; ctx.fillStyle = '#59647a';
+  ctx.textAlign = 'left'; ctx.font = sansFont('12px'); ctx.fillStyle = '#59647a';
   ctx.fillText(text || '未分配', x + 29, y);
 }
 
@@ -105,15 +107,15 @@ class FieldCell extends S.CellTypes.Base {
       const progress = Math.max(0, Math.min(100, Number(value) || 0));
       rounded(ctx, x + 10, y + h / 2 - 4, w - 42, 8, 4, '#edf0f5');
       rounded(ctx, x + 10, y + h / 2 - 4, (w - 42) * progress / 100, 8, 4, '#941966');
-      ctx.font = '10px "Segoe UI", sans-serif'; ctx.fillStyle = '#68748b'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(`${progress}%`, x + w - 10, y + h / 2);
+      ctx.font = sansFont('10px'); ctx.fillStyle = '#68748b'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(`${progress}%`, x + w - 10, y + h / 2);
     } else if (this.field.type === 'rating') {
-      ctx.font = '14px "Segoe UI", sans-serif'; ctx.fillStyle = '#dba943'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('★'.repeat(Number(value) || 0) + '☆'.repeat(5 - (Number(value) || 0)), x + 10, y + h / 2);
+      ctx.font = sansFont('14px'); ctx.fillStyle = '#dba943'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('★'.repeat(Number(value) || 0) + '☆'.repeat(5 - (Number(value) || 0)), x + 10, y + h / 2);
     } else if (this.field.type === 'button') {
       rounded(ctx, x + 10, y + h / 2 - 11, Math.min(w - 20, 88), 22, 5, '#f8ebf3', '#e8d9e1');
-      ctx.font = '11px "Microsoft YaHei", sans-serif'; ctx.fillStyle = '#7d2a5e'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(value), x + 54, y + h / 2);
+      ctx.font = sansFont('11px'); ctx.fillStyle = '#7d2a5e'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(value), x + 54, y + h / 2);
     }
     else {
-      ctx.font = this.field.id === 'title' ? '12px "Microsoft YaHei", sans-serif' : '11px "Microsoft YaHei", sans-serif';
+      ctx.font = this.field.id === 'title' ? sansFont('12px') : sansFont('11px');
       ctx.fillStyle = this.field.id === 'note' ? '#8a93a4' : '#465168'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
       let display=text;
       if(this.field.type==='number'&&value!==''&&value!=null){const options={integer:{maximumFractionDigits:0},decimal:{minimumFractionDigits:2,maximumFractionDigits:2},percent:{style:'percent',maximumFractionDigits:2},currency:{style:'currency',currency:'CNY'}};display=new Intl.NumberFormat('zh-CN',options[this.field.format]||{maximumFractionDigits:10}).format(Number(value));}
@@ -133,7 +135,7 @@ class FieldCell extends S.CellTypes.Base {
       (this.field.options||[]).forEach(value => input.add(new Option(value, value)));
     } else if (this.field.type === 'multiselect') { input.multiple=true; (this.field.options||[]).forEach(value => input.add(new Option(value,value))); }
     else input.type = this.field.type === 'date' ? 'date' : ['number','progress','rating'].includes(this.field.type) ? 'number' : 'text';
-    Object.assign(input.style, { width: '100%', height: '100%', border: '0', outline: 'none', padding: '0 9px', font: '12px "Microsoft YaHei", sans-serif', background: 'white', color: '#34415d', boxSizing: 'border-box' });
+    Object.assign(input.style, { width: '100%', height: '100%', border: '0', outline: 'none', padding: '0 9px', font: sansFont('12px'), background: 'white', color: '#34415d', boxSizing: 'border-box' });
     if (input.type === 'number') { input.step = this.field.type === 'rating' ? '1' : 'any'; if(this.field.type==='progress'){input.min='0';input.max='100';} if(this.field.type==='rating'){input.min='0';input.max='5';} }
     root.append(input);
     return root;
@@ -152,20 +154,20 @@ class LayoutCell extends S.CellTypes.Base {
     ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
     ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
     if (value.kind === 'group') {
-      ctx.font = '12px "Microsoft YaHei", sans-serif'; ctx.fillStyle = '#8b95a5';
+      ctx.font = sansFont('12px'); ctx.fillStyle = '#8b95a5';
       ctx.fillText(view().collapsed.includes(value.key) ? '›' : '⌄', x + 15, y + h / 2 - 1);
       const width = pill(ctx, value.label||groupTitle(value.key), x + 36, y + (h - 21) / 2);
-      ctx.font = '10px "Microsoft YaHei", sans-serif'; ctx.fillStyle = '#9ba4b4';
+      ctx.font = sansFont('10px'); ctx.fillStyle = '#9ba4b4';
       ctx.fillText(`${value.count} 条记录`, x + 49 + width, y + h / 2);
     } else if (value.kind === 'header') {
-      ctx.font = '11px "Microsoft YaHei", sans-serif'; ctx.fillStyle = '#939dae';
+      ctx.font = sansFont('11px'); ctx.fillStyle = '#939dae';
       ctx.fillText(value.icon || '', x + 12, y + h / 2);
       ctx.fillStyle = '#6e798e'; clippedText(ctx, value.text, x + 33, y + h / 2, w - 40);
     } else if (value.kind === 'add') {
-      ctx.font = '17px "Segoe UI", sans-serif'; ctx.fillStyle = '#aab5c7'; ctx.fillText('+', x + 15, y + h / 2);
-      ctx.font = '11px "Microsoft YaHei", sans-serif'; ctx.fillStyle = '#a0aabd'; ctx.fillText('添加记录', x + 39, y + h / 2);
+      ctx.font = sansFont('17px'); ctx.fillStyle = '#aab5c7'; ctx.fillText('+', x + 15, y + h / 2);
+      ctx.font = sansFont('11px'); ctx.fillStyle = '#a0aabd'; ctx.fillText('添加记录', x + 39, y + h / 2);
     } else if (value.kind === 'empty') {
-      ctx.font = '12px "Microsoft YaHei", sans-serif'; ctx.fillStyle = '#98a2b4'; ctx.fillText('没有符合条件的任务', x + 20, y + h / 2);
+      ctx.font = sansFont('12px'); ctx.fillStyle = '#98a2b4'; ctx.fillText('没有符合条件的任务', x + 20, y + h / 2);
     }
     ctx.restore();
   }
@@ -174,7 +176,7 @@ class LayoutCell extends S.CellTypes.Base {
 
 function paintSummary(ctx,record,x,y,w){
   const fields=view().columns.map(id=>state.fields.find(f=>f.id===id)).filter(f=>f&&f.id!=='title'&&f.type!=='button').slice(0,4);
-  fields.forEach((field,index)=>{const cy=y+index*24;ctx.font='10px "Microsoft YaHei", sans-serif';ctx.fillStyle='#949eaf';ctx.textAlign='left';ctx.textBaseline='middle';clippedText(ctx,field.name,x,cy+12,72);new FieldCell(field).paint(ctx,valueOf(record,field),x+72,cy,w-72,24,{});});
+  fields.forEach((field,index)=>{const cy=y+index*24;ctx.font=sansFont('10px');ctx.fillStyle='#949eaf';ctx.textAlign='left';ctx.textBaseline='middle';clippedText(ctx,field.name,x,cy+12,72);new FieldCell(field).paint(ctx,valueOf(record,field),x+72,cy,w-72,24,{});});
 }
 
 class CardCell extends S.CellTypes.Base {
@@ -184,28 +186,28 @@ class CardCell extends S.CellTypes.Base {
     ctx.fillStyle = style.backColor || '#f5f7fb'; ctx.fillRect(x, y, w, h);
     ctx.textAlign = 'left';
     if (!value) { ctx.restore(); return; }
-    if(value.kind==='header') {ctx.font='10px "Microsoft YaHei", sans-serif';ctx.fillStyle='#69758b';ctx.textBaseline='middle';ctx.textAlign='left';clippedText(ctx,value.text,x+8,y+h/2,w-16);ctx.restore();return;}
+    if(value.kind==='header') {ctx.font=sansFont('10px');ctx.fillStyle='#69758b';ctx.textBaseline='middle';ctx.textAlign='left';clippedText(ctx,value.text,x+8,y+h/2,w-16);ctx.restore();return;}
     if (value.kind === 'boardHeader') {
       const [bg, fg] = colorFor(value.key);
       ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(x + 22, y + h / 2, 4, 0, 2 * Math.PI); ctx.fill();
-      ctx.font = '600 13px "Microsoft YaHei", sans-serif'; ctx.fillStyle = '#4d5a72'; ctx.textBaseline = 'middle';
+      ctx.font = sansFont('13px','600'); ctx.fillStyle = '#4d5a72'; ctx.textBaseline = 'middle';
       clippedText(ctx, groupTitle(value.key), x + 35, y + h / 2, w - 100);
       rounded(ctx, x + w - 75, y + 19, 23, 21, 5, '#e8edf4');
-      ctx.font = '10px "Segoe UI", sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#909bae'; ctx.fillText(value.count, x + w - 63.5, y + 29.5);
-      ctx.textAlign = 'left'; ctx.font = '20px "Segoe UI", sans-serif'; ctx.fillStyle = '#9ca8bb'; ctx.fillText('+', x + w - 35, y + h / 2);
+      ctx.font = sansFont('10px'); ctx.textAlign = 'center'; ctx.fillStyle = '#909bae'; ctx.fillText(value.count, x + w - 63.5, y + 29.5);
+      ctx.textAlign = 'left'; ctx.font = sansFont('20px'); ctx.fillStyle = '#9ca8bb'; ctx.fillText('+', x + w - 35, y + h / 2);
     } else if (value.kind === 'card') {
       const record = value.record;
       rounded(ctx, x + 12, y + 3, w - 24, h - 12, 7, '#fff', '#e4e9f1');
-      ctx.font = '600 12px "Microsoft YaHei", sans-serif'; ctx.fillStyle = '#37435c'; ctx.textBaseline = 'middle';
+      ctx.font = sansFont('12px','600'); ctx.fillStyle = '#37435c'; ctx.textBaseline = 'middle';
       clippedText(ctx, record.title, x + 27, y + 29, w - 57);
       paintSummary(ctx,record,x+27,y+47,w-54);
     } else if (value.kind === 'boardAdd') {
-      ctx.font = '12px "Microsoft YaHei", sans-serif'; ctx.fillStyle = '#9aa6b9'; ctx.textBaseline = 'middle'; ctx.fillText('+  添加任务', x + 25, y + 27);
+      ctx.font = sansFont('12px'); ctx.fillStyle = '#9aa6b9'; ctx.textBaseline = 'middle'; ctx.fillText('+  添加任务', x + 25, y + 27);
     } else if (value.kind === 'calendarDay') {
-      ctx.fillStyle=value.outside?'#f7f8fb':'#fff';ctx.fillRect(x,y,w,h);ctx.fillStyle='#f8f9fc';ctx.fillRect(x,y,w,28);ctx.font='11px "Microsoft YaHei", sans-serif';ctx.fillStyle=value.outside?'#b3bbc9':'#778197';ctx.textBaseline='middle';ctx.fillText(value.label,x+10,y+14);ctx.fillText('+',x+w-16,y+14);
+      ctx.fillStyle=value.outside?'#f7f8fb':'#fff';ctx.fillRect(x,y,w,h);ctx.fillStyle='#f8f9fc';ctx.fillRect(x,y,w,28);ctx.font=sansFont('11px');ctx.fillStyle=value.outside?'#b3bbc9':'#778197';ctx.textBaseline='middle';ctx.fillText(value.label,x+10,y+14);ctx.fillText('+',x+w-16,y+14);
       if(value.today){ctx.fillStyle='#941966';ctx.beginPath();ctx.arc(x+w-18,y+17,4,0,Math.PI*2);ctx.fill();}
-      value.records.slice(0,2).forEach((record,i)=>{const cy=y+33+i*25;rounded(ctx,x+5,cy,w-10,21,4,colorFor(record.status)[0]);ctx.fillStyle=colorFor(record.status)[1];ctx.fillRect(x+5,cy,3,21);ctx.font='10px "Microsoft YaHei", sans-serif';ctx.fillStyle='#465168';ctx.textAlign='left';clippedText(ctx,record.title,x+12,cy+11,w-22);});
-      if(value.records.length>2){ctx.font='10px "Microsoft YaHei", sans-serif';ctx.fillStyle='#8a5172';ctx.fillText(`查看全部 ${value.records.length} 项`,x+8,y+h-10);}
+      value.records.slice(0,2).forEach((record,i)=>{const cy=y+33+i*25;rounded(ctx,x+5,cy,w-10,21,4,colorFor(record.status)[0]);ctx.fillStyle=colorFor(record.status)[1];ctx.fillRect(x+5,cy,3,21);ctx.font=sansFont('10px');ctx.fillStyle='#465168';ctx.textAlign='left';clippedText(ctx,record.title,x+12,cy+11,w-22);});
+      if(value.records.length>2){ctx.font=sansFont('10px');ctx.fillStyle='#8a5172';ctx.fillText(`查看全部 ${value.records.length} 项`,x+8,y+h-10);}
     } else if (value.kind === 'gantt') {
       const start=value.record[view().startField]||value.record[view().endField],end=value.record[view().endField]||start;
       ctx.fillStyle=value.weekend?'#f7f9fc':'#fff';ctx.fillRect(x,y,w,h);
@@ -215,7 +217,7 @@ class CardCell extends S.CellTypes.Base {
     } else if (value.kind === 'gallery') {
       rounded(ctx,x+8,y+6,w-16,h-12,7,'#fff','#e4e9f1');
       ctx.fillStyle=colorFor(value.record.status)[0];ctx.fillRect(x+9,y+7,w-18,Math.min(78,h*.34));
-      ctx.font='600 12px "Microsoft YaHei", sans-serif';ctx.fillStyle='#37435c';ctx.textBaseline='top';ctx.textAlign='left';clippedText(ctx,value.record.title,x+19,y+98,w-38);
+      ctx.font=sansFont('12px','600');ctx.fillStyle='#37435c';ctx.textBaseline='top';ctx.textAlign='left';clippedText(ctx,value.record.title,x+19,y+98,w-38);
       paintSummary(ctx,value.record,x+19,y+122,w-38);
     }
     ctx.restore();
@@ -309,7 +311,7 @@ class TaskDataProvider {
     const style = new S.Style();
     style.locked = true; style.vAlign = S.VerticalAlign.center;
     style.backColor = '#fff'; style.foreColor = '#465168';
-    style.font = '11px "Microsoft YaHei", sans-serif';
+    style.font = sansFont('11px');
     if (board) {
       style.backColor = col === dropColumn ? '#f7e9f1' : '#f7f4f6';
       style.cellType = this.cardCell;
@@ -958,6 +960,9 @@ new ResizeObserver(entries=>{
 sheet.bind(S.Events.EditEnded, () => { if (pendingBefore && !editFrame) editFrame = requestAnimationFrame(flushEdits); });
 
 render(); save();
+// Canvas text is painted with whatever font is ready at that moment; repaint once
+// Inter finishes loading so the first paint does not stay on the fallback font.
+if (document.fonts?.ready) document.fonts.ready.then(() => { provider.styleCache.clear(); dataRange.repaint(); });
 // Console inspection entry: no extra diagnostic panels in the business UI.
 window.demo = { spread, sheet, dataRange, provider, get state() { return state; }, get workspace(){return workspace;}, switchView, openRecord, undo, redo };
 console.log('DataRange 多维表格已就绪', { version: S.productVersion, views: state.views.map(v => v.name), records: state.records.length });
