@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createStaticServer } from './scripts/static-server.js';
-import { publicRoot, distRoot, vendorAssets, devAssets } from './scripts/paths.js';
+import { publicRoot, distRoot } from './scripts/paths.js';
 
 const preview = process.argv.includes('--preview');
 const port = Number(process.env.PORT || 5188);
@@ -10,14 +10,13 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
   process.exit(1);
 }
 try {
-  if (preview) await fs.access(path.join(distRoot, 'index.html'));
-  else for (const asset of vendorAssets.values()) await fs.access(asset);
+  await fs.access(path.join(preview ? distRoot : publicRoot, 'index.html'));
 } catch {
-  console.error(preview ? '未找到构建产物，请先运行 npm run build。' : '依赖不完整，请先运行 npm ci。');
+  console.error(preview ? '未找到构建产物，请先运行 npm run build。' : '未找到 public/index.html。');
   process.exit(1);
 }
 
-const server = createStaticServer({ root: preview ? distRoot : publicRoot, assets: preview ? undefined : new Map([...vendorAssets, ...devAssets]) });
+const server = createStaticServer({ root: preview ? distRoot : publicRoot });
 server.on('error', error => {
   console.error(error.code === 'EADDRINUSE' ? `端口 ${port} 已被占用，请设置 PORT 后重试。` : error.message);
   process.exitCode = 1;
