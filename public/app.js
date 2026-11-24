@@ -82,7 +82,7 @@ function pill(ctx, text, x, y, maxWidth = 200) {
   rounded(ctx, x, y, width, 21, 10, background);
   ctx.fillStyle = foreground;
   ctx.textBaseline = 'middle';
-  clippedText(ctx, text, x + 10, y + 10.5, width - 17);
+  clippedText(ctx, text, x + 10, y + 12, width - 17);
   return width;
 }
 
@@ -96,6 +96,135 @@ function person(ctx, text, x, y) {
   ctx.textAlign = 'left'; ctx.font = sansFont('12px'); ctx.fillStyle = '#59647a';
   ctx.fillText(text || '未分配', x + 29, y);
 }
+
+function pillSpan(text, value) {
+  const [background, foreground] = colorFor(value || '');
+  const el = document.createElement('span');
+  el.className = 'ss-pill';
+  el.style.background = background;
+  el.style.color = foreground;
+  el.textContent = text;
+  return el;
+}
+function avatarSpan(name, field) {
+  const list = field?.options || workspace.members || [];
+  const i = Math.max(0, list.indexOf(name));
+  const el = document.createElement('span');
+  el.className = 'ss-avatar';
+  el.style.background = personColors[i % personColors.length];
+  el.textContent = String(name || '').slice(0, 1);
+  return el;
+}
+function placeMenu(menu, anchor) {
+  menu.style.minWidth = `${Math.min(Math.max(160, anchor.width), 280)}px`;
+  menu.style.left = '0px';
+  menu.style.top = '0px';
+  const width = menu.offsetWidth, height = menu.offsetHeight;
+  menu.style.left = `${Math.max(8, Math.min(anchor.left, innerWidth - width - 8))}px`;
+  let top = anchor.bottom + 4;
+  if (top + height > innerHeight - 8) top = Math.max(8, anchor.top - height - 4);
+  menu.style.top = `${top}px`;
+}
+let cellPicker = null;
+function closeCellPicker(save = false) {
+  if (!cellPicker) return;
+  const picker = cellPicker;
+  cellPicker = null;
+  picker.menu.remove();
+  if (save && picker.field.type === 'multiselect') {
+    const next = Array.isArray(picker.value) ? [...picker.value] : [];
+    const record = findRecord(picker.recordId);
+    const current = Array.isArray(record?.[picker.field.id]) ? record[picker.field.id] : [];
+    if (JSON.stringify([...current].sort()) !== JSON.stringify([...next].sort())) {
+      commit('编辑记录', () => updateRecord(state, picker.recordId, { [picker.field.id]: next }));
+    }
+  }
+}
+function renderCellPicker(picker) {
+  const { field, menu, value } = picker;
+  menu.replaceChildren();
+  const options = field.type === 'multiselect'
+    ? (field.options || []).map(item => ({ label: item, value: item }))
+    : [{ label: '未设置', value: '' }, ...(field.options || []).map(item => ({ label: item, value: item }))];
+  for (const option of options) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'ss-menu-option';
+    button.dataset.value = option.value;
+    button.setAttribute('role', 'option');
+    button.setAttribute('aria-label', option.label);
+    if (field.type === 'person' && option.value) {
+      button.append(avatarSpan(option.value, field));
+      const label = document.createElement('span');
+      label.className = 'ss-person-name';
+      label.textContent = option.label;
+      button.append(label);
+    } else button.append(pillSpan(option.label, option.value));
+    const selected = field.type === 'multiselect' ? value.includes(option.value) : value === option.value;
+    button.setAttribute('aria-selected', String(selected));
+    if (selected) {
+      button.classList.add('is-selected');
+      const check = document.createElement('span');
+      check.className = 'ss-check';
+      check.textContent = '✓';
+      button.append(check);
+    }
+    button.addEventListener('click', () => {
+      if (field.type === 'multiselect') {
+        const index = picker.value.indexOf(option.value);
+        if (index >= 0) picker.value.splice(index, 1); else picker.value.push(option.value);
+        renderCellPicker(picker);
+      } else {
+        commit('编辑记录', () => updateRecord(state, picker.recordId, { [field.id]: option.value }));
+        closeCellPicker(false);
+      }
+    });
+    menu.append(button);
+  }
+  if (field.type === 'multiselect') {
+    const done = document.createElement('button');
+    done.type = 'button';
+    done.className = 'ss-menu-done';
+    done.textContent = '完成';
+    done.addEventListener('click', () => closeCellPicker(true));
+    menu.append(done);
+  }
+  placeMenu(menu, picker.anchor);
+}
+function openCellPicker(recordId, field, row, col) {
+  closeCellPicker(false);
+  const host = $('ss').getBoundingClientRect();
+  const rect = sheet.getCellRect(row, col);
+  const anchor = { left: host.left + rect.x, top: host.top + rect.y, bottom: host.top + rect.y + rect.height, width: rect.width };
+  const record = findRecord(recordId);
+  const raw = record?.[field.id];
+  const menu = document.createElement('div');
+  menu.className = 'ss-pill-menu';
+  menu.setAttribute('role', 'listbox');
+  if (field.type === 'multiselect') menu.setAttribute('aria-multiselectable', 'true');
+  cellPicker = {
+    recordId,
+    field,
+    value: field.type === 'multiselect' ? (Array.isArray(raw) ? [...raw] : []) : (raw ?? ''),
+    menu,
+    anchor
+  };
+  renderCellPicker(cellPicker);
+  document.body.append(menu);
+  placeMenu(menu, anchor);
+}
+document.addEventListener('mousedown', event => {
+  if (!cellPicker) return;
+  if (cellPicker.menu.contains(event.target)) return;
+  closeCellPicker(true);
+}, true);
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && cellPicker) closeCellPicker(false);
+});
+window.addEventListener('resize', () => closeCellPicker(false));
+document.addEventListener('scroll', event => {
+  if (cellPicker && !cellPicker.menu.contains(event.target)) closeCellPicker(false);
+}, true);
 
 class FieldCell extends S.CellTypes.Base {
   constructor(field) { super(); this.field = field; }
@@ -127,7 +256,7 @@ class FieldCell extends S.CellTypes.Base {
         const bx = x + w - 50, by = y + h / 2 - 10;
         rounded(ctx, bx, by, 42, 20, 10, '#f8ebf3', '#e8d9e1');
         ctx.font = sansFont('10px'); ctx.fillStyle = '#941966'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText('查看', bx + 21, y + h / 2);
+        ctx.fillText('查看', bx + 21, y + h / 2 + 1.5);
       }
     }
     ctx.restore();
@@ -453,10 +582,20 @@ class TaskDataProvider {
     return false;
   }
   onDoubleClick(row, col) {
-    if (view().type !== 'board') return false;
-    const record = this.recordAt(row, col);
-    if (record) openRecord(record.id);
-    return true;
+    if (view().type === 'board') {
+      const record = this.recordAt(row, col);
+      if (record) openRecord(record.id);
+      return true;
+    }
+    if (view().type === 'grid') {
+      const item = this.rows[row];
+      const field = this.fields[col - 1];
+      if (item?.kind === 'record' && field && ['select','person','multiselect'].includes(field.type)) {
+        openCellPicker(item.id, field, row, col);
+        return true;
+      }
+    }
+    return false;
   }
   onContextMenu() { return true; }
   onClear() { return false; }
