@@ -1,0 +1,22 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      '@grapecity-software/spread-sheets':
+        specifier: 19.2.3
+        version: 19.2.3
+
+packages:
+
+  '@grapecity-software/spread-sheets@19.2.3':
+    resolution: {integrity: sha512-NJ8ESs7VMDjf8Qor283EM0FKxgwu1k4AymzjrvMEMxGHnyCN0ERCQet1MzhMWq+2a4EuzECmOHpfkuqHsteciw==}
+
+snapshots:
+
+  '@grapecity-software/spread-sheets@19.2.3': {}
